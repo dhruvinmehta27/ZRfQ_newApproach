@@ -11,8 +11,23 @@
     data-sap-ui-async="true"
     data-sap-ui-frameOptions="allow"
     data-sap-ui-resourceRoots='{"com.zrfq.rfq": "./"}'
-    data-sap-ui-onInit="module:sap/fe/core/main"
   ></script>
+  <script>
+    sap.ui.getCore().attachInit(() => {
+      sap.ui.require(
+        ['sap/m/Shell', 'sap/ui/core/ComponentContainer'],
+        (Shell, ComponentContainer) => {
+          new Shell({
+            app: new ComponentContainer({
+              name: 'com.zrfq.rfq',
+              manifest: true,
+              height: '100%'
+            })
+          }).placeAt('content');
+        }
+      );
+    });
+  </script>
 </head>
 <body class="sapUiBody" id="content"></body>
 </html>
