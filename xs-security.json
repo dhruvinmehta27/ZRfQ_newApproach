@@ -1,6 +1,75 @@
 {
-  "scopes": [],
+  "xsappname": "ZRfQ-newApproach",
+  "tenant-mode": "dedicated",
+  "description": "XSUAA security descriptor for RFQ CAP application",
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.RFQRead",
+      "description": "Read access to RFQ data"
+    },
+    {
+      "name": "$XSAPPNAME.RFQWrite",
+      "description": "Create and update RFQs"
+    },
+    {
+      "name": "$XSAPPNAME.RFQAdmin",
+      "description": "Full administrative access including delete"
+    }
+  ],
   "attributes": [],
-  "role-templates": [],
-  "authorities-inheritance": false
+  "role-templates": [
+    {
+      "name": "RFQViewer",
+      "description": "Read-only access to RFQs",
+      "scope-references": [
+        "$XSAPPNAME.RFQRead"
+      ]
+    },
+    {
+      "name": "RFQEditor",
+      "description": "Create and update RFQs",
+      "scope-references": [
+        "$XSAPPNAME.RFQRead",
+        "$XSAPPNAME.RFQWrite"
+      ]
+    },
+    {
+      "name": "RFQAdministrator",
+      "description": "Full access including delete",
+      "scope-references": [
+        "$XSAPPNAME.RFQRead",
+        "$XSAPPNAME.RFQWrite",
+        "$XSAPPNAME.RFQAdmin"
+      ]
+    }
+  ],
+  "role-collections": [
+    {
+      "name": "RFQ_Viewer",
+      "description": "RFQ read-only users",
+      "role-template-references": [
+        "$XSAPPNAME.RFQViewer"
+      ]
+    },
+    {
+      "name": "RFQ_Editor",
+      "description": "RFQ editors",
+      "role-template-references": [
+        "$XSAPPNAME.RFQEditor"
+      ]
+    },
+    {
+      "name": "RFQ_Admin",
+      "description": "RFQ administrators",
+      "role-template-references": [
+        "$XSAPPNAME.RFQAdministrator"
+      ]
+    }
+  ],
+  "oauth2-configuration": {
+    "token-validity": 43200,
+    "redirect-uris": [
+      "https://*.cfapps.eu10.hana.ondemand.com/**"
+    ]
+  }
 }
