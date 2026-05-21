@@ -16,7 +16,7 @@ const axios = require('axios');
 const { resolveDestination } = require('./destination');
 
 const DEST_NAME  = 'C4C_QUA_HARDCODED';
-const COLL_PATH  = '/cust/v1/zrfq/RFQRootCollection';
+const COLL_PATH  = '/sap/c4c/odata/cust/v1/zrfq/RFQRootCollection';
 const CSRF_TTL   = 9 * 60 * 1000; // 9 minutes
 
 let _csrf = { token: null, cookies: '', fetchedAt: 0 };
