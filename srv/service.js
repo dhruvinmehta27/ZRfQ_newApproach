@@ -3,41 +3,80 @@
 const cds = require('@sap/cds');
 const c4c = require('./lib/c4c-client');
 
-// ── Field mapping: CAP service field → C4C OData V2 field ────────────────────
+// ── Field mapping: CAP field → C4C OData V2 element name (from SDK bo def) ───
 const TO_C4C = {
-  ID          : 'ObjectID',
-  rfqNumber   : 'ExternalID',
-  title       : 'Subject',
-  description : 'Note',
-  buyerID     : 'BuyerPartyID',
-  supplierID  : 'SupplierPartyID',
-  statusCode  : 'LifeCycleStatusCode',
-  status      : 'LifeCycleStatusCodeText',
-  deliveryDate: 'RequestedDeliveryDate',
-  amount      : 'TotalAmount',
-  currency    : 'CurrencyCode',
-  createdAt   : 'CreatedOn',
-  modifiedAt  : 'LastUpdatedOn'
+  ObjectID                  : 'ObjectID',
+  rfqID                     : 'ID',
+  name                      : 'Name',
+  rfqType                   : 'RFQType',
+  rfqStatus                 : 'RFQStatus',
+  rfqStatusDesc             : 'RFQStatus_Desc',
+  externalStatus            : 'ExternalUserStatusCode',
+  systemStatus              : 'SystemStatus',
+  account                   : 'Account',
+  accountName               : 'AccountName',
+  supplier                  : 'Supplier',
+  supplierName              : 'SupplierName',
+  owner                     : 'Owner',
+  ownerName                 : 'OwnerName',
+  requestor                 : 'Requestor',
+  requestorName             : 'RequestorName',
+  categoryPurchaser         : 'CategoryPurchaser',
+  categoryPurchaserName     : 'CategoryPurchaserName',
+  categoryPurchaserEmail    : 'CategoryPurchaserEmail',
+  rfqDueDate                : 'RFQDueDate',
+  rfqInquiryDate            : 'RFQInquiryDate',
+  customerInquiryDate       : 'CustomerInquiryDate',
+  sop                       : 'SOP',
+  closedDate                : 'RFQConfirmedOn_ClosedDate',
+  rfqRemindedDate           : 'RFQReminded_Date',
+  createdOnDate             : 'CreatedOn_date',
+  changedOnDate             : 'ChangedOn_date',
+  estimatedTurnover         : 'EstimatedPeakTurnOver',
+  estimatedTurnoverCurrency : 'EstimatedPeakTurnOverCurrencyCode',
+  supplierLeadTime          : 'SupplierLeadTime',
+  busSeg                    : 'BusSeg',
+  marketSeg                 : 'MarketSeg',
+  appCode                   : 'AppCode',
+  platform                  : 'Platform',
+  itemCategory              : 'ItemCategory',
+  evaluation                : 'Evaluation',
+  orgName                   : 'OrgName',
+  orgID                     : 'OrgID',
+  terrName                  : 'TerrName',
+  terrID                    : 'TerrID',
+  rfqOverDue                : 'RfQOverDue',
+  rfqRemainingDays          : 'RfQRemainingDueDays',
+  confidential              : 'Confidential',
+  gmpIndicator              : 'GMPIndicator',
+  npdrfq                    : 'NPDRFQ',
+  rdcIndicator              : 'RDC_Indicator',
+  isIndicator               : 'IS_Indicator',
+  frsFlag                   : 'FRSFlag',
+  industrialRouting         : 'IndustrialRouting',
+  rfqReopened               : 'RFQReopened',
+  fromOpportunity           : 'FromOpportunity',
+  fromQuote                 : 'FromQuote',
+  noOfProducts              : 'NoOfProducts',
+  noOfEquote                : 'NoOfEqote',
+  noOfAttachments           : 'NoOfAttachments',
+  rfqReminded               : 'RFQReminded',
+  parentOpportunityID       : 'ParentOpportunityID',
+  earID                     : 'EARID',
+  createdByName             : 'CreatedBy',
+  lastChangedByName         : 'LastChangedByName'
 };
 
 const FROM_C4C = Object.fromEntries(Object.entries(TO_C4C).map(([k, v]) => [v, k]));
 
-// Criticality map for Fiori Elements colour coding (statusCode → UI enum)
-// 3 = Positive (green), 2 = Critical (orange), 1 = Negative (red), 0 = Neutral
-const STATUS_CRITICALITY = {
-  '1': 3, // Open / Active
-  '2': 1, // Cancelled
-  '3': 2, // In Progress
-  '4': 3, // Awarded
-  '5': 1  // Rejected
-};
-
-function toCAP(c4cObj) {
+function toCAP(raw) {
   const r = {};
   for (const [c4cKey, capKey] of Object.entries(FROM_C4C)) {
-    if (c4cObj[c4cKey] !== undefined) r[capKey] = c4cObj[c4cKey];
+    if (raw[c4cKey] !== undefined) r[capKey] = raw[c4cKey];
   }
-  r.criticality = STATUS_CRITICALITY[r.statusCode] ?? 0;
+  // Criticality: red when overdue, neutral otherwise.
+  // Extend STATUS_CRITICALITY below once you know your ExternalUserStatusCode values.
+  r.criticality = r.rfqOverDue === true ? 1 : 0;
   return r;
 }
 
@@ -49,31 +88,31 @@ function toC4C(capObj) {
   return r;
 }
 
-// Extract the key value from a CAP WHERE clause array  e.g. [{ref:['ID']},'=',{val:'abc'}]
+// Extracts ObjectID from a CAP WHERE clause [{ref:['ObjectID']},'=',{val:'...'}]
 function extractId(where = []) {
   for (let i = 0; i < where.length - 2; i++) {
-    if (where[i]?.ref?.[0] === 'ID' && where[i + 1] === '=' && where[i + 2]?.val !== undefined) {
+    const ref = where[i]?.ref?.[0];
+    if ((ref === 'ObjectID' || ref === 'ID') && where[i + 1] === '=' && where[i + 2]?.val !== undefined) {
       return String(where[i + 2].val);
     }
   }
   return null;
 }
 
-// Translate a CAP SELECT orderBy clause into a C4C $orderby string
 function buildOrderBy(orderBy = []) {
   return orderBy
     .map(o => `${TO_C4C[o.ref?.[0]] ?? o.ref?.[0]} ${o.sort ?? 'asc'}`)
     .join(',');
 }
 
-// ── Service implementation ────────────────────────────────────────────────────
+// ── Service ───────────────────────────────────────────────────────────────────
 
 module.exports = class RFQService extends cds.ApplicationService {
 
   async init() {
     const { RFQs, RFQStatusSummary } = this.entities;
 
-    // READ ─────────────────────────────────────────────────────────────────────
+    // READ ────────────────────────────────────────────────────────────────────
     this.on('READ', RFQs, async (req) => {
       try {
         const { SELECT } = req.query;
@@ -85,8 +124,8 @@ module.exports = class RFQService extends cds.ApplicationService {
         }
 
         const params = {};
-        if (SELECT?.limit?.rows?.val   != null) params.$top  = SELECT.limit.rows.val;
-        if (SELECT?.limit?.offset?.val != null) params.$skip = SELECT.limit.offset.val;
+        if (SELECT?.limit?.rows?.val   != null) params.$top     = SELECT.limit.rows.val;
+        if (SELECT?.limit?.offset?.val != null) params.$skip    = SELECT.limit.offset.val;
         if (SELECT?.orderBy?.length)            params.$orderby = buildOrderBy(SELECT.orderBy);
 
         const results = await c4c.listRFQs(params);
@@ -97,11 +136,11 @@ module.exports = class RFQService extends cds.ApplicationService {
       }
     });
 
-    // CREATE ───────────────────────────────────────────────────────────────────
+    // CREATE ──────────────────────────────────────────────────────────────────
     this.on('CREATE', RFQs, async (req) => {
       try {
         const payload = toC4C(req.data);
-        delete payload.ObjectID; // let C4C generate the key
+        delete payload.ObjectID;
         const created = await c4c.createRFQ(payload);
         return toCAP(created);
       } catch (e) {
@@ -109,12 +148,12 @@ module.exports = class RFQService extends cds.ApplicationService {
       }
     });
 
-    // UPDATE ───────────────────────────────────────────────────────────────────
+    // UPDATE ──────────────────────────────────────────────────────────────────
     this.on('UPDATE', RFQs, async (req) => {
       try {
-        const id = req.params?.[0]?.ID;
+        const id = req.params?.[0]?.ObjectID;
         const payload = toC4C(req.data);
-        delete payload.ObjectID; // immutable key – must not be sent in PATCH body
+        delete payload.ObjectID;
         await c4c.updateRFQ(id, payload);
         return { ...req.data };
       } catch (e) {
@@ -122,38 +161,36 @@ module.exports = class RFQService extends cds.ApplicationService {
       }
     });
 
-    // DELETE ───────────────────────────────────────────────────────────────────
+    // DELETE ──────────────────────────────────────────────────────────────────
     this.on('DELETE', RFQs, async (req) => {
       try {
-        const id = req.params?.[0]?.ID;
+        const id = req.params?.[0]?.ObjectID;
         await c4c.deleteRFQ(id);
       } catch (e) {
         req.error(e.response?.status ?? 500, e.response?.data?.error?.message?.value ?? e.message);
       }
     });
 
-    // READ – Reporting / pipeline summary ──────────────────────────────────────
+    // READ – Status pipeline summary ──────────────────────────────────────────
     this.on('READ', RFQStatusSummary, async (req) => {
       try {
-        // Fetch all records without $select and reuse the same toCAP() mapping
-        // so field names stay consistent with the RFQs handler
         const all = await c4c.listRFQs({});
 
         const groups = {};
         for (const raw of all) {
           const item = toCAP(raw);
-          const key = item.statusCode ?? 'UNKNOWN';
+          const key = item.externalStatus ?? 'UNKNOWN';
           if (!groups[key]) {
             groups[key] = {
-              statusCode  : item.statusCode ?? '',
-              status      : item.status ?? item.statusCode ?? '',
-              count       : 0,
-              totalAmount : 0,
-              currency    : item.currency ?? ''
+              externalStatus : item.externalStatus ?? '',
+              statusDesc     : item.rfqStatusDesc  ?? item.externalStatus ?? '',
+              count          : 0,
+              totalTurnover  : 0,
+              currency       : item.estimatedTurnoverCurrency ?? ''
             };
           }
           groups[key].count++;
-          groups[key].totalAmount += parseFloat(item.amount ?? 0);
+          groups[key].totalTurnover += parseFloat(item.estimatedTurnover ?? 0);
         }
 
         return Object.values(groups);
