@@ -135,24 +135,25 @@ module.exports = class RFQService extends cds.ApplicationService {
     // READ – Reporting / pipeline summary ──────────────────────────────────────
     this.on('READ', RFQStatusSummary, async (req) => {
       try {
-        const all = await c4c.listRFQs({
-          $select: 'LifeCycleStatusCode,LifeCycleStatusCodeText,TotalAmount,CurrencyCode'
-        });
+        // Fetch all records without $select and reuse the same toCAP() mapping
+        // so field names stay consistent with the RFQs handler
+        const all = await c4c.listRFQs({});
 
         const groups = {};
-        for (const item of all) {
-          const key = item.LifeCycleStatusCode ?? '';
+        for (const raw of all) {
+          const item = toCAP(raw);
+          const key = item.statusCode ?? 'UNKNOWN';
           if (!groups[key]) {
             groups[key] = {
-              statusCode  : item.LifeCycleStatusCode ?? '',
-              status      : item.LifeCycleStatusCodeText ?? item.LifeCycleStatusCode ?? '',
+              statusCode  : item.statusCode ?? '',
+              status      : item.status ?? item.statusCode ?? '',
               count       : 0,
               totalAmount : 0,
-              currency    : item.CurrencyCode ?? ''
+              currency    : item.currency ?? ''
             };
           }
           groups[key].count++;
-          groups[key].totalAmount += parseFloat(item.TotalAmount ?? 0);
+          groups[key].totalAmount += parseFloat(item.amount ?? 0);
         }
 
         return Object.values(groups);
