@@ -1,5 +1,8 @@
 using RFQService from '../../srv/service';
 
+// Makes rfqID render as a navigation link in the List Report table
+annotate RFQService.RFQs with @Common.SemanticKey: [rfqID];
+
 // ── LIST REPORT ───────────────────────────────────────────────────────────────
 
 annotate RFQService.RFQs with @(
