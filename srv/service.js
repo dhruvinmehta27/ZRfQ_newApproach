@@ -514,12 +514,11 @@ module.exports = class RFQService extends cds.ApplicationService {
             const capData = toCAP(obj);
             _rfqCacheSet(capData);
             return [capData];
-          } catch (e) {
-            // C4C throttles concurrent single-key reads with 500.
-            // Return a minimal stub so Fiori skips gracefully instead of
-            // showing an error dialog for background lazy-load requests.
-            if (e.response?.status === 500) return [{ ObjectID: id, criticality: 0 }];
-            throw e;
+          } catch (_e) {
+            // C4C can return 500 (or other errors) on single-key reads during
+            // Fiori lazy-loading. Serve a minimal stub — Fiori will silently
+            // use cached list data and never show an error dialog.
+            return [{ ObjectID: id, criticality: 0 }];
           }
         }
 
@@ -528,10 +527,12 @@ module.exports = class RFQService extends cds.ApplicationService {
         if (SELECT?.limit?.offset?.val != null) params.$skip    = SELECT.limit.offset.val;
         if (SELECT?.orderBy?.length)            params.$orderby = buildOrderBy(SELECT.orderBy);
 
-        const results = await c4c.listRFQs(params);
+        const { results, count } = await c4c.listRFQs(params);
         const capResults = results.map(toCAP);
         // Populate cache so subsequent single-entity reads are served locally
         capResults.forEach(_rfqCacheSet);
+        // Expose total count so Fiori knows pagination bounds without extra $count requests
+        if (count != null) capResults.$count = count;
         return capResults;
       } catch (e) {
         req.error(e.response?.status ?? 500, e.response?.data?.error?.message?.value ?? e.message);
@@ -590,7 +591,7 @@ module.exports = class RFQService extends cds.ApplicationService {
 
     this.on('READ', RFQStatusSummary, async (req) => {
       try {
-        const all = await c4c.listRFQs({});
+        const { results: all } = await c4c.listRFQs({});
 
         const groups = {};
         for (const raw of all) {

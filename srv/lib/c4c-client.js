@@ -57,30 +57,22 @@ async function _csrf_token() {
 async function listRFQs(odataParams = {}) {
   const client = await _client();
   const r = await client.get(ROOT_COLL, {
-    params: { $format: 'json', ...odataParams }
+    params: { $format: 'json', $inlinecount: 'allpages', ...odataParams }
   });
-  return r.data?.d?.results ?? r.data?.value ?? [];
+  const d = r.data?.d;
+  const results = d?.results ?? r.data?.value ?? [];
+  // $inlinecount=allpages returns total count in d.__count (OData V2 string)
+  const count = d?.__count != null ? parseInt(d.__count, 10) : undefined;
+  return { results, count };
 }
 
 async function getRFQ(id) {
   const client = await _client();
-  try {
-    const r = await client.get(`${ROOT_COLL}('${encodeURIComponent(id)}')`, {
-      params: { $format: 'json' }
-    });
-    return r.data?.d ?? r.data;
-  } catch (e) {
-    // C4C returns 500 on single-entity key reads for some collections/versions.
-    // Fall back to a filter-based list read which is always supported.
-    if (e.response?.status === 500) {
-      const r2 = await client.get(ROOT_COLL, {
-        params: { $format: 'json', $filter: `ObjectID eq '${id}'`, $top: 1 }
-      });
-      const results = r2.data?.d?.results ?? r2.data?.value ?? [];
-      if (results.length > 0) return results[0];
-    }
-    throw e;
-  }
+  const r = await client.get(`${ROOT_COLL}('${encodeURIComponent(id)}')`, {
+    params: { $format: 'json' }
+  });
+  return r.data?.d ?? r.data;
+  // No filter fallback — C4C can return 500 on key reads; service.js handles it.
 }
 
 async function createRFQ(payload) {
