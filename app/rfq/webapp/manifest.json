@@ -1,0 +1,108 @@
+{
+    "_version": "1.65.0",
+    "sap.app": {
+        "id": "rfq",
+        "type": "application",
+        "title": "{{appTitle}}",
+        "description": "{{appDescription}}",
+        "applicationVersion": { "version": "1.0.0" },
+        "dataSources": {
+            "mainService": {
+                "uri": "/odata/v4/rfqservice/",
+                "type": "OData",
+                "settings": {
+                    "odataVersion": "4.0",
+                    "annotations": []
+                }
+            }
+        }
+    },
+    "sap.ui": {
+        "technology": "UI5",
+        "deviceTypes": {
+            "desktop": true,
+            "tablet": true,
+            "phone": true
+        }
+    },
+    "sap.fiori": {
+        "registrationIds": [],
+        "archeType": "transactional"
+    },
+    "sap.ui5": {
+        "flexEnabled": true,
+        "dependencies": {
+            "minUI5Version": "1.120.0",
+            "libs": {
+                "sap.m": {},
+                "sap.ui.core": {},
+                "sap.fe.templates": {}
+            }
+        },
+        "models": {
+            "": {
+                "dataSource": "mainService",
+                "preload": true,
+                "settings": {
+                    "synchronizationMode": "None",
+                    "operationMode": "Server",
+                    "autoExpandSelect": true,
+                    "earlyRequests": true
+                }
+            },
+            "i18n": {
+                "type": "sap.ui.model.resource.ResourceModel",
+                "settings": {
+                    "bundleName": "rfq.i18n.i18n"
+                }
+            }
+        },
+        "routing": {
+            "routes": [
+                {
+                    "pattern": ":?query:",
+                    "name": "RFQsList",
+                    "target": "RFQsList"
+                },
+                {
+                    "pattern": "RFQs({key}):?query:",
+                    "name": "RFQsObjectPage",
+                    "target": "RFQsObjectPage"
+                }
+            ],
+            "targets": {
+                "RFQsList": {
+                    "type": "Component",
+                    "id": "RFQsList",
+                    "name": "sap.fe.templates.ListReport",
+                    "options": {
+                        "settings": {
+                            "entitySet": "RFQs",
+                            "variantManagement": "None",
+                            "initialLoad": true,
+                            "controlConfiguration": {
+                                "@com.sap.vocabularies.UI.v1.LineItem": {
+                                    "tableSettings": {
+                                        "type": "ResponsiveTable",
+                                        "selectionMode": "Multi"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "RFQsObjectPage": {
+                    "type": "Component",
+                    "id": "RFQsObjectPage",
+                    "name": "sap.fe.templates.ObjectPage",
+                    "options": {
+                        "settings": {
+                            "entitySet": "RFQs",
+                            "editableHeaderContent": false
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,6 +1,6 @@
-ID,RfQID,Description,createdAt,createdBy,modifiedAt,modifiedBy
-10265616-c8d7-4a01-bdd6-ea0e4d9db747,32,Description-10265616,2016-03-12T00:00:00.000Z,createdBy.64100@example.com,2006-05-03T00:00:00.000Z,modifiedBy.64100@example.org
-10265617-a13d-42ba-9f90-96ec65b8454d,40,Description-10265617,2014-02-18T00:00:00.000Z,createdBy.64101@example.com,2012-12-23T00:00:00.000Z,modifiedBy.64101@example.com
-10265618-95e3-476b-a6f1-3e11b1ff3d56,87,Description-10265618,2005-10-25T00:00:00.000Z,createdBy.64102@example.org,2016-06-24T00:00:00.000Z,modifiedBy.64102@example.org
-10265619-75b4-4b3b-80dc-073d34b9497d,67,Description-10265619,2023-05-06T00:00:00.000Z,createdBy.64103@example.net,2005-06-10T00:00:00.000Z,modifiedBy.64103@example.net
-10265620-1a13-485e-867c-52e545e68a82,72,Description-10265620,2006-06-09T00:00:00.000Z,createdBy.64104@example.org,2021-04-10T00:00:00.000Z,modifiedBy.64104@example.org
+ID,RfQID,Description,Status,ValidFrom,ValidTo,createdAt,createdBy,modifiedAt,modifiedBy
+10265616-c8d7-4a01-bdd6-ea0e4d9db747,32,Office Furniture Procurement,Draft,2026-01-01,2026-03-31,2026-01-01T09:00:00.000Z,admin@example.com,2026-01-01T09:00:00.000Z,admin@example.com
+10265617-a13d-42ba-9f90-96ec65b8454d,40,IT Equipment Refresh,Sent,2026-02-01,2026-04-30,2026-02-01T10:00:00.000Z,admin@example.com,2026-02-05T10:00:00.000Z,admin@example.com
+10265618-95e3-476b-a6f1-3e11b1ff3d56,87,Raw Materials Q2,Received,2026-03-01,2026-05-31,2026-03-01T08:00:00.000Z,admin@example.com,2026-03-10T08:00:00.000Z,admin@example.com
+10265619-75b4-4b3b-80dc-073d34b9497d,67,Cleaning Supplies Annual,Closed,2025-10-01,2025-12-31,2025-10-01T07:00:00.000Z,admin@example.com,2026-01-15T07:00:00.000Z,admin@example.com
+10265620-1a13-485e-867c-52e545e68a82,72,Logistics Services,Sent,2026-04-01,2026-06-30,2026-04-01T11:00:00.000Z,admin@example.com,2026-04-03T11:00:00.000Z,admin@example.com
