@@ -1,9 +1,0 @@
-ID,RFQ_ID,ItemNumber,Material,Description,Quantity,Unit,TargetPrice,Currency,createdAt,createdBy,modifiedAt,modifiedBy
-bbbbbbbb-0001-4000-b000-000000000001,10265616-c8d7-4a01-bdd6-ea0e4d9db747,10,CHAIR-001,Ergonomic Office Chair,50.000,EA,300.00,USD,2026-01-01T09:00:00.000Z,admin@example.com,2026-01-01T09:00:00.000Z,admin@example.com
-bbbbbbbb-0001-4000-b000-000000000002,10265616-c8d7-4a01-bdd6-ea0e4d9db747,20,DESK-002,Standing Desk 160x80cm,20.000,EA,800.00,USD,2026-01-01T09:00:00.000Z,admin@example.com,2026-01-01T09:00:00.000Z,admin@example.com
-bbbbbbbb-0001-4000-b000-000000000003,10265617-a13d-42ba-9f90-96ec65b8454d,10,LAPTOP-001,Business Laptop 15inch,30.000,EA,1200.00,USD,2026-02-01T10:00:00.000Z,admin@example.com,2026-02-01T10:00:00.000Z,admin@example.com
-bbbbbbbb-0001-4000-b000-000000000004,10265617-a13d-42ba-9f90-96ec65b8454d,20,MONITOR-002,27inch 4K Monitor,30.000,EA,450.00,USD,2026-02-01T10:00:00.000Z,admin@example.com,2026-02-01T10:00:00.000Z,admin@example.com
-bbbbbbbb-0001-4000-b000-000000000005,10265617-a13d-42ba-9f90-96ec65b8454d,30,DOCK-003,USB-C Docking Station,30.000,EA,150.00,USD,2026-02-01T10:00:00.000Z,admin@example.com,2026-02-01T10:00:00.000Z,admin@example.com
-bbbbbbbb-0001-4000-b000-000000000006,10265618-95e3-476b-a6f1-3e11b1ff3d56,10,STEEL-001,Steel Sheet 2mm 1x2m,500.000,PC,25.00,USD,2026-03-01T08:00:00.000Z,admin@example.com,2026-03-01T08:00:00.000Z,admin@example.com
-bbbbbbbb-0001-4000-b000-000000000007,10265618-95e3-476b-a6f1-3e11b1ff3d56,20,ALUM-002,Aluminium Profile 6m,200.000,PC,18.00,USD,2026-03-01T08:00:00.000Z,admin@example.com,2026-03-01T08:00:00.000Z,admin@example.com
-bbbbbbbb-0001-4000-b000-000000000008,10265620-1a13-485e-867c-52e545e68a82,10,TRANS-001,Standard Freight Service,100.000,SH,75.00,USD,2026-04-01T11:00:00.000Z,admin@example.com,2026-04-01T11:00:00.000Z,admin@example.com

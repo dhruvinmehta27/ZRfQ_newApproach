@@ -1,18 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Request for Quotation</title>
-    <script
-        id="sap-ui-bootstrap"
-        src="https://ui5.sap.com/1.120.23/resources/sap-ui-core.js"
-        data-sap-ui-theme="sap_horizon"
-        data-sap-ui-compatVersion="edge"
-        data-sap-ui-async="true"
-        data-sap-ui-onInit="module:sap/fe/core/AppComponent"
-        data-sap-ui-resourceroots='{"rfq": "./"}'
-    ></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RFQ Management</title>
+  <script id="sap-ui-bootstrap"
+    src="https://ui5.sap.com/1.120/resources/sap-ui-core.js"
+    data-sap-ui-theme="sap_horizon"
+    data-sap-ui-compatVersion="edge"
+    data-sap-ui-async="true"
+    data-sap-ui-frameOptions="allow"
+    data-sap-ui-resourceRoots='{"com.zrfq.rfq": "./"}'
+  ></script>
+  <script>
+    sap.ui.getCore().attachInit(() => {
+      sap.ui.require(
+        ['sap/m/Shell', 'sap/ui/core/ComponentContainer'],
+        (Shell, ComponentContainer) => {
+          new Shell({
+            app: new ComponentContainer({
+              name: 'com.zrfq.rfq',
+              manifest: true,
+              height: '100%'
+            })
+          }).placeAt('content');
+        }
+      );
+    });
+  </script>
 </head>
 <body class="sapUiBody" id="content"></body>
 </html>

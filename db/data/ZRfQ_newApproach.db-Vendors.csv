@@ -1,4 +1,0 @@
-ID,VendorID,Name,Email,ContactPerson,createdAt,createdBy,modifiedAt,modifiedBy
-aaaaaaaa-0001-4000-a000-000000000001,V001,ACME Corporation,procurement@acme.com,John Smith,2026-01-01T00:00:00.000Z,admin@example.com,2026-01-01T00:00:00.000Z,admin@example.com
-aaaaaaaa-0001-4000-a000-000000000002,V002,TechSupply Ltd,sales@techsupply.com,Jane Doe,2026-01-01T00:00:00.000Z,admin@example.com,2026-01-01T00:00:00.000Z,admin@example.com
-aaaaaaaa-0001-4000-a000-000000000003,V003,Global Materials Inc,orders@globalmaterials.com,Robert Lee,2026-01-01T00:00:00.000Z,admin@example.com,2026-01-01T00:00:00.000Z,admin@example.com

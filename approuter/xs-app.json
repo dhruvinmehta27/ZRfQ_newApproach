@@ -1,0 +1,21 @@
+{
+  "welcomeFile": "/rfq/webapp/index.html",
+  "authenticationMethod": "route",
+  "sessionTimeout": 30,
+  "routes": [
+    {
+      "source"             : "^/rfq/(.*)$",
+      "target"             : "/rfq/$1",
+      "destination"        : "srv-api",
+      "authenticationType" : "xsuaa",
+      "csrfProtection"     : false
+    },
+    {
+      "source"             : "^/(.*)$",
+      "target"             : "/$1",
+      "destination"        : "srv-api",
+      "authenticationType" : "xsuaa",
+      "csrfProtection"     : false
+    }
+  ]
+}
