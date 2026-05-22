@@ -23,13 +23,13 @@
   },
   "scripts": {
     "start": "cds-serve",
-    "watch": "cds watch --open",
+    "watch": "NODE_ENV=development cds watch --open",
     "build:cf": "npx cds build --production"
   },
   "cds": {
     "requires": {
       "auth": {
-        "[development]": { "kind": "dummy" },
+        "kind": "dummy",
         "[production]": { "kind": "xsuaa" }
       }
     },
