@@ -464,6 +464,26 @@ function mkChildHandlers(srv, entityName, c4cCollection, fieldMap, opts = {}) {
   });
 }
 
+// ── RFQ list-result cache ─────────────────────────────────────────────────────
+// Fiori Elements lazy-loads individual rows after a list fetch
+// (GET /RFQs('OID')?$select=rfqRemainingDays). C4C throttles those single-key
+// reads and can return 500. We populate this cache from every list response so
+// the individual reads are served locally without a second C4C round-trip.
+
+const _rfqCache = new Map();
+const _CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function _rfqCacheSet(capData) {
+  _rfqCache.set(capData.ObjectID, { data: capData, expiresAt: Date.now() + _CACHE_TTL });
+}
+
+function _rfqCacheGet(id) {
+  const entry = _rfqCache.get(id);
+  if (!entry) return null;
+  if (entry.expiresAt < Date.now()) { _rfqCache.delete(id); return null; }
+  return entry.data;
+}
+
 // ── Service ───────────────────────────────────────────────────────────────────
 
 module.exports = class RFQService extends cds.ApplicationService {
@@ -484,8 +504,23 @@ module.exports = class RFQService extends cds.ApplicationService {
         const id = extractField(SELECT?.where ?? [], 'ObjectID');
 
         if (id) {
-          const obj = await c4c.getRFQ(id);
-          return [toCAP(obj)];
+          // Serve from cache first (populated by list reads below).
+          // Avoids hitting C4C for every Fiori lazy-load / side-panel request.
+          const cached = _rfqCacheGet(id);
+          if (cached) return [cached];
+
+          try {
+            const obj = await c4c.getRFQ(id);
+            const capData = toCAP(obj);
+            _rfqCacheSet(capData);
+            return [capData];
+          } catch (e) {
+            // C4C throttles concurrent single-key reads with 500.
+            // Return a minimal stub so Fiori skips gracefully instead of
+            // showing an error dialog for background lazy-load requests.
+            if (e.response?.status === 500) return [{ ObjectID: id, criticality: 0 }];
+            throw e;
+          }
         }
 
         const params = {};
@@ -494,7 +529,10 @@ module.exports = class RFQService extends cds.ApplicationService {
         if (SELECT?.orderBy?.length)            params.$orderby = buildOrderBy(SELECT.orderBy);
 
         const results = await c4c.listRFQs(params);
-        return results.map(toCAP);
+        const capResults = results.map(toCAP);
+        // Populate cache so subsequent single-entity reads are served locally
+        capResults.forEach(_rfqCacheSet);
+        return capResults;
       } catch (e) {
         req.error(e.response?.status ?? 500, e.response?.data?.error?.message?.value ?? e.message);
       }
