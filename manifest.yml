@@ -1,0 +1,42 @@
+---
+# Cloud Foundry manifest for direct cf push (no mbt required).
+#
+# Pre-requisites (run once):
+#   cf create-service xsuaa application cx-xsuaa-mcp -c xs-security.json
+#   cf create-service destination lite cx-destination
+#
+# Build then push:
+#   npm run build:cf
+#   cf push
+#
+# After first push, update the SRV_URL value below with the real route
+# of ZRfQ-srv, then re-push ZRfQ-approuter.
+
+applications:
+
+  - name: ZRfQ-srv
+    path: gen/srv
+    buildpack: nodejs_buildpack
+    memory: 512M
+    disk_quota: 1024M
+    instances: 1
+    command: node node_modules/@sap/cds/bin/cds-serve
+    services:
+      - cx-xsuaa-mcp
+      - cx-destination
+    env:
+      NODE_ENV: production
+      OPTIMIZE_MEMORY: "true"
+
+  - name: ZRfQ-approuter
+    path: approuter
+    buildpack: nodejs_buildpack
+    memory: 256M
+    disk_quota: 512M
+    instances: 1
+    services:
+      - cx-xsuaa-mcp
+    env:
+      # Replace the url value with the actual ZRfQ-srv route after first deploy
+      destinations: >
+        [{"name":"srv-api","url":"https://ZRfQ-srv.cfapps.eu10.hana.ondemand.com","forwardAuthToken":true}]
