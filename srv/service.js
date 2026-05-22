@@ -464,25 +464,39 @@ function mkChildHandlers(srv, entityName, c4cCollection, fieldMap, opts = {}) {
   });
 }
 
-// ── RFQ list-result cache ─────────────────────────────────────────────────────
-// Fiori Elements lazy-loads individual rows after a list fetch
-// (GET /RFQs('OID')?$select=rfqRemainingDays). C4C throttles those single-key
-// reads and can return 500. We populate this cache from every list response so
-// the individual reads are served locally without a second C4C round-trip.
+// ── Caches ────────────────────────────────────────────────────────────────────
+// C4C custom BOs return HTTP 500 when $skip exceeds the result-set size, making
+// server-side pagination unreliable. Strategy:
+//   _listCache  – full collection per sort-key, refreshed every 5 min. Pages 2+
+//                 are sliced locally — no $top/$skip ever sent to C4C.
+//   _rfqCache   – per-item entries populated from list reads. Fiori lazy-loads
+//                 individual rows after the list (GET /RFQs('OID')?$select=…).
+//                 Cache hits avoid a C4C round-trip; misses return a silent stub.
 
-const _rfqCache = new Map();
 const _CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+const _rfqCache  = new Map();  // ObjectID → { data, expiresAt }
+const _listCache = new Map();  // orderBy string → { data: capArr, expiresAt }
 
 function _rfqCacheSet(capData) {
   _rfqCache.set(capData.ObjectID, { data: capData, expiresAt: Date.now() + _CACHE_TTL });
 }
-
 function _rfqCacheGet(id) {
   const entry = _rfqCache.get(id);
   if (!entry) return null;
   if (entry.expiresAt < Date.now()) { _rfqCache.delete(id); return null; }
   return entry.data;
 }
+
+function _listCacheSet(key, all) {
+  _listCache.set(key, { data: all, expiresAt: Date.now() + _CACHE_TTL });
+}
+function _listCacheGet(key) {
+  const entry = _listCache.get(key);
+  if (!entry || entry.expiresAt < Date.now()) { _listCache.delete(key); return null; }
+  return entry.data;
+}
+function _listCacheInvalidate() { _listCache.clear(); }
 
 // ── Service ───────────────────────────────────────────────────────────────────
 
@@ -522,18 +536,26 @@ module.exports = class RFQService extends cds.ApplicationService {
           }
         }
 
-        const params = {};
-        if (SELECT?.limit?.rows?.val   != null) params.$top     = SELECT.limit.rows.val;
-        if (SELECT?.limit?.offset?.val != null) params.$skip    = SELECT.limit.offset.val;
-        if (SELECT?.orderBy?.length)            params.$orderby = buildOrderBy(SELECT.orderBy);
+        // Fetch the full collection once and paginate locally.
+        // $top/$skip are stripped inside listRFQs — C4C 500s on offset reads.
+        const orderBy = SELECT?.orderBy?.length ? buildOrderBy(SELECT.orderBy) : '';
+        const cacheKey = orderBy;
 
-        const { results, count } = await c4c.listRFQs(params);
-        const capResults = results.map(toCAP);
-        // Populate cache so subsequent single-entity reads are served locally
-        capResults.forEach(_rfqCacheSet);
-        // Expose total count so Fiori knows pagination bounds without extra $count requests
-        if (count != null) capResults.$count = count;
-        return capResults;
+        let all = _listCacheGet(cacheKey);
+        if (!all) {
+          const params = {};
+          if (orderBy) params.$orderby = orderBy;
+          const raw = await c4c.listRFQs(params);
+          all = raw.map(toCAP);
+          all.forEach(_rfqCacheSet);   // seed individual-item cache
+          _listCacheSet(cacheKey, all);
+        }
+
+        const skip = SELECT?.limit?.offset?.val != null ? Number(SELECT.limit.offset.val) : 0;
+        const top  = SELECT?.limit?.rows?.val  != null ? Number(SELECT.limit.rows.val)  : all.length;
+        const page = all.slice(skip, skip + top);
+        page.$count = all.length;
+        return page;
       } catch (e) {
         req.error(e.response?.status ?? 500, e.response?.data?.error?.message?.value ?? e.message);
       }
@@ -544,6 +566,7 @@ module.exports = class RFQService extends cds.ApplicationService {
         const payload = toC4C(req.data);
         delete payload.ObjectID;
         const created = await c4c.createRFQ(payload);
+        _listCacheInvalidate();
         return toCAP(created);
       } catch (e) {
         req.error(e.response?.status ?? 500, e.response?.data?.error?.message?.value ?? e.message);
@@ -556,6 +579,7 @@ module.exports = class RFQService extends cds.ApplicationService {
         const payload = toC4C(req.data);
         delete payload.ObjectID;
         await c4c.updateRFQ(id, payload);
+        _listCacheInvalidate();
         return { ...req.data };
       } catch (e) {
         req.error(e.response?.status ?? 500, e.response?.data?.error?.message?.value ?? e.message);
@@ -566,6 +590,7 @@ module.exports = class RFQService extends cds.ApplicationService {
       try {
         const id = req.params?.[0]?.ObjectID;
         await c4c.deleteRFQ(id);
+        _listCacheInvalidate();
       } catch (e) {
         req.error(e.response?.status ?? 500, e.response?.data?.error?.message?.value ?? e.message);
       }
@@ -591,7 +616,7 @@ module.exports = class RFQService extends cds.ApplicationService {
 
     this.on('READ', RFQStatusSummary, async (req) => {
       try {
-        const { results: all } = await c4c.listRFQs({});
+        const all = await c4c.listRFQs({});
 
         const groups = {};
         for (const raw of all) {

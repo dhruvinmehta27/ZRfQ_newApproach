@@ -56,14 +56,15 @@ async function _csrf_token() {
 
 async function listRFQs(odataParams = {}) {
   const client = await _client();
+  // $top / $skip are intentionally omitted from the C4C request: the custom BO
+  // returns HTTP 500 when the offset exceeds the result-set size on paginated reads.
+  // service.js fetches the full collection once and paginates locally.
+  const { $top, $skip, ...c4cParams } = odataParams;
   const r = await client.get(ROOT_COLL, {
-    params: { $format: 'json', $inlinecount: 'allpages', ...odataParams }
+    params: { $format: 'json', ...c4cParams }
   });
   const d = r.data?.d;
-  const results = d?.results ?? r.data?.value ?? [];
-  // $inlinecount=allpages returns total count in d.__count (OData V2 string)
-  const count = d?.__count != null ? parseInt(d.__count, 10) : undefined;
-  return { results, count };
+  return d?.results ?? r.data?.value ?? [];
 }
 
 async function getRFQ(id) {
