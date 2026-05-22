@@ -77,6 +77,11 @@
           "target": "RFQsObjectPage"
         },
         {
+          "pattern": "RFQs({key})/items({key2}):?query:",
+          "name": "RFQsItemsObjectPage",
+          "target": "RFQsItemsObjectPage"
+        },
+        {
           "pattern": "RFQStatusSummary:?query:",
           "name": "RFQStatusSummary",
           "target": "RFQStatusSummary"
@@ -107,7 +112,25 @@
           "options": {
             "settings": {
               "entitySet": "RFQs",
-              "editableHeaderContent": false
+              "editableHeaderContent": false,
+              "navigation": {
+                "items": {
+                  "detail": {
+                    "route": "RFQsItemsObjectPage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "RFQsItemsObjectPage": {
+          "type": "Component",
+          "id": "RFQsItemsObjectPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "RFQs",
+              "navigationProperty": "items"
             }
           }
         },
