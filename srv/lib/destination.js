@@ -1,5 +1,8 @@
 'use strict';
 
+// Load default-env.json into process.env for local development
+try { require('@sap/xsenv').loadEnv(); } catch (_) {}
+
 /**
  * Resolves a BTP Destination Service destination to { baseURL, auth }.
  *
