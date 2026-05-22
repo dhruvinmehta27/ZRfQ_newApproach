@@ -51,9 +51,7 @@ async function resolveDestination(name) {
       }
     };
     if (!config.baseURL) {
-      throw new Error(
-        'Local dev: set C4C_BASE_URL (and optionally C4C_USER / C4C_PASSWORD) in your environment.'
-      );
+      return null; // signals mock mode to callers
     }
     return config;
   }

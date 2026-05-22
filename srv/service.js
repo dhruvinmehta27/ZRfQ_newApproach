@@ -2,6 +2,13 @@
 
 const cds = require('@sap/cds');
 const c4c = require('./lib/c4c-client');
+const mock = require('./lib/mock-data');
+
+// Mock mode: active when C4C_BASE_URL is not set and VCAP_SERVICES is absent
+const IS_MOCK = !process.env.VCAP_SERVICES && !process.env.C4C_BASE_URL;
+if (IS_MOCK) {
+  console.warn('[RFQService] ⚠  No C4C_BASE_URL found – running with local mock data.');
+}
 
 // ── Root entity: CAP field → C4C OData V2 property name ──────────────────────
 
@@ -513,13 +520,25 @@ module.exports = class RFQService extends cds.ApplicationService {
     // ── Root entity handlers ─────────────────────────────────────────────────
 
     this.on('READ', RFQs, async (req) => {
+      if (IS_MOCK) {
+        const id = extractField(req.query.SELECT?.where ?? [], 'ObjectID');
+        if (id) {
+          const found = mock.RFQS.find(r => r.ObjectID === id);
+          return found ? [found] : [];
+        }
+        const all = mock.RFQS;
+        const skip = req.query.SELECT?.limit?.offset?.val != null ? Number(req.query.SELECT.limit.offset.val) : 0;
+        const top  = req.query.SELECT?.limit?.rows?.val  != null ? Number(req.query.SELECT.limit.rows.val)  : all.length;
+        const page = all.slice(skip, skip + top);
+        page.$count = all.length;
+        return page;
+      }
+
       try {
         const { SELECT } = req.query;
         const id = extractField(SELECT?.where ?? [], 'ObjectID');
 
         if (id) {
-          // Serve from cache first (populated by list reads below).
-          // Avoids hitting C4C for every Fiori lazy-load / side-panel request.
           const cached = _rfqCacheGet(id);
           if (cached) return [cached];
 
@@ -529,15 +548,10 @@ module.exports = class RFQService extends cds.ApplicationService {
             _rfqCacheSet(capData);
             return [capData];
           } catch (_e) {
-            // C4C can return 500 (or other errors) on single-key reads during
-            // Fiori lazy-loading. Serve a minimal stub — Fiori will silently
-            // use cached list data and never show an error dialog.
             return [{ ObjectID: id, criticality: 0 }];
           }
         }
 
-        // Fetch the full collection once and paginate locally.
-        // $top/$skip are stripped inside listRFQs — C4C 500s on offset reads.
         const orderBy = SELECT?.orderBy?.length ? buildOrderBy(SELECT.orderBy) : '';
         const cacheKey = orderBy;
 
@@ -547,7 +561,7 @@ module.exports = class RFQService extends cds.ApplicationService {
           if (orderBy) params.$orderby = orderBy;
           const raw = await c4c.listRFQs(params);
           all = raw.map(toCAP);
-          all.forEach(_rfqCacheSet);   // seed individual-item cache
+          all.forEach(_rfqCacheSet);
           _listCacheSet(cacheKey, all);
         }
 
@@ -562,6 +576,7 @@ module.exports = class RFQService extends cds.ApplicationService {
     });
 
     this.on('CREATE', RFQs, async (req) => {
+      if (IS_MOCK) { req.error(501, 'Create not available in mock mode'); return; }
       try {
         const payload = toC4C(req.data);
         delete payload.ObjectID;
@@ -574,6 +589,7 @@ module.exports = class RFQService extends cds.ApplicationService {
     });
 
     this.on('UPDATE', RFQs, async (req) => {
+      if (IS_MOCK) { req.error(501, 'Update not available in mock mode'); return; }
       try {
         const id = req.params?.[0]?.ObjectID;
         const payload = toC4C(req.data);
@@ -587,6 +603,7 @@ module.exports = class RFQService extends cds.ApplicationService {
     });
 
     this.on('DELETE', RFQs, async (req) => {
+      if (IS_MOCK) { req.error(501, 'Delete not available in mock mode'); return; }
       try {
         const id = req.params?.[0]?.ObjectID;
         await c4c.deleteRFQ(id);
@@ -597,30 +614,52 @@ module.exports = class RFQService extends cds.ApplicationService {
     });
 
     // ── Child entity handlers ────────────────────────────────────────────────
-    // Collection names match the C4C $metadata EntityContainer exactly.
 
+    // In mock mode: register simple READ-only handlers that filter by parentObjectID
+    if (IS_MOCK) {
+      const mockChild = (entity, dataset) => {
+        this.on('READ', entity, async (req) => {
+          const where = req.query.SELECT?.where ?? [];
+          const parentOid = extractField(where, 'parentObjectID');
+          const oid       = extractField(where, 'ObjectID');
+          if (oid)       return dataset.filter(r => r.ObjectID === oid);
+          if (parentOid) return dataset.filter(r => r.parentObjectID === parentOid);
+          return dataset;
+        });
+      };
+      mockChild(RFQItems,          mock.ITEMS);
+      mockChild(RFQForecasts,      mock.FORECASTS);
+      mockChild(RFQNotes,          mock.NOTES);
+      mockChild(RFQSalesTeams,     mock.SALES_TEAM);
+      mockChild(RFQParties,        mock.PARTIES);
+      mockChild(RFQEquoteData,     mock.EQUOTE_DATA);
+      mockChild(RFQGlobalEquote,   mock.GLOBAL_EQUOTE);
+      mockChild(RFQRelatedTxns,    mock.RELATED_TXNS);
+      mockChild(RFQAttachmentList, mock.ATTACHMENT_LIST);
+      mockChild(RFQAttachments,    mock.ATTACHMENTS);
+      mockChild(RFQStatusHistory,  mock.STATUS_HISTORY);
+    } else {
+    // Collection names match the C4C $metadata EntityContainer exactly.
     mkChildHandlers(this, RFQItems,         'RFQItemCollection',                         ITEMS);
     mkChildHandlers(this, RFQForecasts,     'RFQForecastCollection',                     FORECASTS);
     mkChildHandlers(this, RFQNotes,         'RFQnotesCollection',                        NOTES);
     mkChildHandlers(this, RFQSalesTeams,    'RFQSalesTeamCollection',                    SALES_TEAM);
     mkChildHandlers(this, RFQParties,       'RFQPartyCollection',                        PARTIES);
     mkChildHandlers(this, RFQEquoteData,    'RFQEquoteDataCollection',                   EQUOTE);
-    mkChildHandlers(this, RFQGlobalEquote,  'RFQGloabalEquoteDataCollection',            GLOBAL_EQUOTE); // C4C typo in coll name
+    mkChildHandlers(this, RFQGlobalEquote,  'RFQGloabalEquoteDataCollection',            GLOBAL_EQUOTE);
     mkChildHandlers(this, RFQRelatedTxns,   'RFQListofRelatedTransactionsCollection',    RELATED_TXNS);
     mkChildHandlers(this, RFQAttachmentList,'RFQListofAttachmentsCollection',            ATT_LIST);
     mkChildHandlers(this, RFQStatusHistory, 'RFQStatusChangesTrackingCollection',        STATUS_HIST);
-    // RFQAttachments: C4C does not support PATCH on this collection
     mkChildHandlers(this, RFQAttachments,   'RFQAttachmentsCollection',                  ATTACHMENTS, { noUpdate: true });
+    }
 
     // ── RFQ Status Summary (pipeline reporting, computed in handler) ──────────
 
     this.on('READ', RFQStatusSummary, async (req) => {
+      const source = IS_MOCK ? mock.RFQS : (await c4c.listRFQs({})).map(toCAP);
       try {
-        const all = await c4c.listRFQs({});
-
         const groups = {};
-        for (const raw of all) {
-          const item = toCAP(raw);
+        for (const item of source) {
           const key = item.externalStatus ?? 'UNKNOWN';
           if (!groups[key]) {
             groups[key] = {
@@ -634,7 +673,6 @@ module.exports = class RFQService extends cds.ApplicationService {
           groups[key].count++;
           groups[key].totalTurnover += parseFloat(item.estimatedTurnover ?? 0);
         }
-
         return Object.values(groups);
       } catch (e) {
         req.error(e.response?.status ?? 500, e.response?.data?.error?.message?.value ?? e.message);
