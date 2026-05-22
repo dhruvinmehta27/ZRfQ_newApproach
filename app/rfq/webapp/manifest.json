@@ -95,7 +95,7 @@
           "options": {
             "settings": {
               "entitySet": "RFQs",
-              "variantManagement": "Page",
+              "variantManagement": "None",
               "initialLoad": "Enabled",
               "navigationSettings": {
                 "detail": {
