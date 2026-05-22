@@ -14,8 +14,7 @@
       "internalConsoleOptions": "openOnSessionStart",
       "type": "pwa-node",
       "cwd": "${workspaceFolder}",
-      "preLaunchTask": "PreLaunchTask for Run ZRfQ_newApproach",
-      "envFile": "${workspaceFolder}/env/.env1",
+      "preLaunchTask": "npm-install",
       "env": {
         "run.config": "{\"handlerId\":\"lcap_run_config_handler_id\",\"runnableId\":\"{\\\"projectPath\\\":\\\"/home/user/projects/ZRfQ_newApproach\\\",\\\"profileName\\\":\\\"\\\"}\"}"
       }

@@ -44,7 +44,7 @@
       "type": "process",
       "command": "npx",
       "args": [
-        "dev-cap-tools",
+        "@sap/dev-cap-tools",
         "gen-entrypoint"
       ],
       "dependsOn": [
