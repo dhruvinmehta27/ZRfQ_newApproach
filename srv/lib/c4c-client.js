@@ -64,10 +64,23 @@ async function listRFQs(odataParams = {}) {
 
 async function getRFQ(id) {
   const client = await _client();
-  const r = await client.get(`${ROOT_COLL}('${encodeURIComponent(id)}')`, {
-    params: { $format: 'json' }
-  });
-  return r.data?.d ?? r.data;
+  try {
+    const r = await client.get(`${ROOT_COLL}('${encodeURIComponent(id)}')`, {
+      params: { $format: 'json' }
+    });
+    return r.data?.d ?? r.data;
+  } catch (e) {
+    // C4C returns 500 on single-entity key reads for some collections/versions.
+    // Fall back to a filter-based list read which is always supported.
+    if (e.response?.status === 500) {
+      const r2 = await client.get(ROOT_COLL, {
+        params: { $format: 'json', $filter: `ObjectID eq '${id}'`, $top: 1 }
+      });
+      const results = r2.data?.d?.results ?? r2.data?.value ?? [];
+      if (results.length > 0) return results[0];
+    }
+    throw e;
+  }
 }
 
 async function createRFQ(payload) {
