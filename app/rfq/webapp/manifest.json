@@ -1,0 +1,89 @@
+{
+  "_version": "1.65.0",
+  "sap.app": {
+    "id": "zrfq.rfq",
+    "type": "application",
+    "title": "RFQ Management",
+    "applicationVersion": {
+      "version": "1.0.0"
+    },
+    "dataSources": {
+      "mainService": {
+        "uri": "/odata/v4/rfqservice/",
+        "type": "OData",
+        "settings": {
+          "odataVersion": "4.0",
+          "annotations": [
+            "localAnnotations"
+          ]
+        }
+      },
+      "localAnnotations": {
+        "type": "ODataAnnotation",
+        "uri": "../annotations/annotations.cds"
+      }
+    }
+  },
+  "sap.ui5": {
+    "dependencies": {
+      "minUI5Version": "1.120.0",
+      "libs": {
+        "sap.m": {},
+        "sap.ui.core": {},
+        "sap.fe.templates": {}
+      }
+    },
+    "routing": {
+      "routes": [
+        {
+          "name": "RFQListReport",
+          "pattern": ":?query:",
+          "target": "RFQListReport"
+        },
+        {
+          "name": "RFQObjectPage",
+          "pattern": "RFQs({key}):?query:",
+          "target": "RFQObjectPage"
+        }
+      ],
+      "targets": {
+        "RFQListReport": {
+          "type": "Component",
+          "id": "RFQListReport",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "RFQs",
+              "variantManagement": "Page",
+              "navigation": {
+                "RFQs": {
+                  "detail": {
+                    "route": "RFQObjectPage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "RFQObjectPage": {
+          "type": "Component",
+          "id": "RFQObjectPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "RFQs",
+              "editableHeaderContent": true
+            }
+          }
+        }
+      }
+    }
+  },
+  "sap.fe": {
+    "entitySets": {
+      "RFQs": {
+        "name": "RFQs"
+      }
+    }
+  }
+}
