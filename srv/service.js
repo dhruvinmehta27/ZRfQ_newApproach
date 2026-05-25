@@ -535,7 +535,9 @@ module.exports = class RFQService extends cds.ApplicationService {
 
       try {
         const { SELECT } = req.query;
-        const id = extractField(SELECT?.where ?? [], 'ObjectID');
+        // For /RFQs('OID') navigation CAP puts the key in req.params, not WHERE.
+        const id = extractField(SELECT?.where ?? [], 'ObjectID')
+          || req.params?.[0]?.ObjectID;
 
         if (id) {
           const cached = _rfqCacheGet(id);
