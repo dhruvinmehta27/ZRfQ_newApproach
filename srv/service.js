@@ -496,10 +496,11 @@ function mkChildHandlers(srv, entityName, c4cCollection, fieldMap, opts = {}) {
 }
 
 // ── Caches ────────────────────────────────────────────────────────────────────────────
-const _CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const _CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
-const _rfqCache  = new Map();  // ObjectID → { data, expiresAt }
-const _listCache = new Map();  // orderBy string → { data: capArr, expiresAt }
+const _rfqCache   = new Map();  // ObjectID → { data, expiresAt }
+const _listCache  = new Map();  // orderBy string → { data: capArr, expiresAt }
+const _listFetch  = new Map();  // orderBy string → Promise<capArr> (in-flight dedup)
 
 function _rfqCacheSet(capData) {
   _rfqCache.set(capData.ObjectID, { data: capData, expiresAt: Date.now() + _CACHE_TTL });
@@ -518,7 +519,7 @@ function _listCacheGet(key) {
   const entry = _listCache.get(key);
   if (!entry || entry.expiresAt < Date.now()) { _listCache.delete(key); return null; }  return entry.data;
 }
-function _listCacheInvalidate() { _listCache.clear(); }
+function _listCacheInvalidate() { _listCache.clear(); _listFetch.clear(); }
 
 // ── Service ─────────────────────────────────────────────────────────────────────────────────
 
@@ -574,12 +575,21 @@ module.exports = class RFQService extends cds.ApplicationService {
 
         let all = _listCacheGet(cacheKey);
         if (!all) {
-          const params = {};
-          if (orderBy) params.$orderby = orderBy;
-          const raw = await c4c.listRFQs(params);
-          all = raw.map(toCAP);
-          all.forEach(_rfqCacheSet);
-          _listCacheSet(cacheKey, all);
+          // Deduplicate: if another request is already fetching the same key,
+          // await the same promise instead of making a duplicate C4C call.
+          if (!_listFetch.has(cacheKey)) {
+            const params = {};
+            if (orderBy) params.$orderby = orderBy;
+            const p = c4c.listRFQs(params).then(raw => {
+              const result = raw.map(toCAP);
+              result.forEach(_rfqCacheSet);
+              _listCacheSet(cacheKey, result);
+              _listFetch.delete(cacheKey);
+              return result;
+            }).catch(e => { _listFetch.delete(cacheKey); throw e; });
+            _listFetch.set(cacheKey, p);
+          }
+          all = await _listFetch.get(cacheKey);
         }
 
         const skip = SELECT?.limit?.offset?.val != null ? Number(SELECT.limit.offset.val) : 0;
@@ -693,7 +703,7 @@ module.exports = class RFQService extends cds.ApplicationService {
     // ── RFQ Status Summary (pipeline reporting, computed in handler) ──────────────────
 
     this.on('READ', RFQStatusSummary, async (req) => {
-      const source = IS_MOCK ? mock.RFQS : (await c4c.listRFQs({})).map(toCAP);
+      const source = IS_MOCK ? mock.RFQS : (_listCacheGet('') ?? (await c4c.listRFQs({})).map(toCAP));
       try {
         const groups = {};
         for (const item of source) {
@@ -717,5 +727,18 @@ module.exports = class RFQService extends cds.ApplicationService {
     });
 
     await super.init();
+
+    // Warm the list cache in the background at startup so the first user
+    // request hits the cache rather than waiting for a full C4C page-chain fetch.
+    if (!IS_MOCK) {
+      setImmediate(() => {
+        c4c.listRFQs({}).then(raw => {
+          const all = raw.map(toCAP);
+          all.forEach(_rfqCacheSet);
+          _listCacheSet('', all);
+          console.log(`[RFQService] Cache warmed: ${all.length} RFQs ready`);
+        }).catch(e => console.warn('[RFQService] Cache warm failed:', e.message));
+      });
+    }
   }
 };
