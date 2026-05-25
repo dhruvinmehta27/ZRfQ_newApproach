@@ -54,7 +54,7 @@ const TO_C4C = {
   terrName                  : 'TerrName',
   terrID                    : 'TerrID',
   rfqOverDue                : 'RfQOverDue',
-  rfqRemainingDays          : 'RfQRemainingDueDays',
+
   confidential              : 'Confidential',
   gmpIndicator              : 'GMPIndicator',
   npdrfq                    : 'NPDRFQ',

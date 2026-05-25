@@ -63,7 +63,7 @@ service RFQService {
         terrID                    : String(60);      // TerrID
         // Indicators / flags
         rfqOverDue                : Boolean;         // RfQOverDue
-        rfqRemainingDays          : Decimal(10,2);   // RfQRemainingDueDays
+
         confidential              : Boolean;         // Confidential
         gmpIndicator              : Boolean;         // GMPIndicator
         npdrfq                    : Boolean;         // NPDRFQ

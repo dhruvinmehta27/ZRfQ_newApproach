@@ -32,7 +32,7 @@ const RFQS = [
     orgName: 'Procurement Org',
     orgID: 'ORG001',
     rfqOverDue: false,
-    rfqRemainingDays: 70,
+
     noOfProducts: 2,
     criticality: 0,
     createdOnDate: '2026-05-01',
@@ -65,7 +65,7 @@ const RFQS = [
     orgName: 'Supply Chain Org',
     orgID: 'ORG002',
     rfqOverDue: true,
-    rfqRemainingDays: -37,
+
     noOfProducts: 3,
     criticality: 1,
     createdOnDate: '2026-03-01',
@@ -97,7 +97,7 @@ const RFQS = [
     orgName: 'Logistics Org',
     orgID: 'ORG003',
     rfqOverDue: false,
-    rfqRemainingDays: 24,
+
     noOfProducts: 1,
     criticality: 0,
     createdOnDate: '2026-05-10',

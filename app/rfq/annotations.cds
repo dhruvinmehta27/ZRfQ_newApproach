@@ -27,7 +27,7 @@ annotate RFQService.RFQs with @(
       CriticalityRepresentation: #WithIcon
     },
     { $Type: 'UI.DataField', Value: rfqDueDate,       Label: '{i18n>rfqDueDate}' },
-    { $Type: 'UI.DataField', Value: rfqRemainingDays, Label: '{i18n>rfqRemainingDays}' },
+
     { $Type: 'UI.DataField', Value: marketSeg,        Label: '{i18n>marketSeg}' },
     { $Type: 'UI.DataField', Value: orgName,          Label: '{i18n>orgName}' },
     { $Type: 'UI.DataField', Value: ownerName,        Label: '{i18n>owner}' }
