@@ -1,6 +1,3 @@
-ID,RfQID,Description,createdAt,createdBy,modifiedAt,modifiedBy
-10265616-c8d7-4a01-bdd6-ea0e4d9db747,32,Description-10265616,2016-03-12T00:00:00.000Z,createdBy.64100@example.com,2006-05-03T00:00:00.000Z,modifiedBy.64100@example.org
-10265617-a13d-42ba-9f90-96ec65b8454d,40,Description-10265617,2014-02-18T00:00:00.000Z,createdBy.64101@example.com,2012-12-23T00:00:00.000Z,modifiedBy.64101@example.com
-10265618-95e3-476b-a6f1-3e11b1ff3d56,87,Description-10265618,2005-10-25T00:00:00.000Z,createdBy.64102@example.org,2016-06-24T00:00:00.000Z,modifiedBy.64102@example.org
-10265619-75b4-4b3b-80dc-073d34b9497d,67,Description-10265619,2023-05-06T00:00:00.000Z,createdBy.64103@example.net,2005-06-10T00:00:00.000Z,modifiedBy.64103@example.net
-10265620-1a13-485e-867c-52e545e68a82,72,Description-10265620,2006-06-09T00:00:00.000Z,createdBy.64104@example.org,2021-04-10T00:00:00.000Z,modifiedBy.64104@example.org
+ObjectID,rfqID,name,accountName,supplierName,ownerName,rfqDueDate,rfqStatusDesc,criticality,marketSeg,orgName,createdAt,createdBy,modifiedAt,modifiedBy
+OBJ-100001,RFQ-100001,Network Upgrade RFQ,Acme Industries,Supplier A,John Smith,2026-06-15,Open,2,Enterprise,North America Sales,2026-05-01T10:00:00Z,system,2026-05-01T10:00:00Z,system
+OBJ-100002,RFQ-100002,Cloud Migration RFQ,Globex Corp,Supplier B,Sarah Lee,2026-06-20,In Review,1,SMB,EMEA Sales,2026-05-02T09:00:00Z,system,2026-05-02T09:00:00Z,system
