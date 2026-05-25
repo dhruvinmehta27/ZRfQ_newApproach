@@ -6,7 +6,7 @@
     "type": "application",
     "title": "{{appTitle}}",
     "description": "{{appDescription}}",
-    "applicationVersion": { "version": "1.0.9" },
+    "applicationVersion": { "version": "1.1.0" },
     "dataSources": {
       "mainService": {
         "uri": "/rfq/",
@@ -47,6 +47,17 @@
       "compact": true,
       "cozy": true
     },
+
+    "extends": {
+      "extensions": {
+        "sap.ui.controllerExtensions": {
+          "sap.fe.templates.ListReport.ListReportController#RFQsList": {
+            "controllerName": "com.zrfq.rfq.ext.ListReportExt"
+          }
+        }
+      }
+    },
+
     "models": {
       "": {
         "dataSource": "mainService",
@@ -97,20 +108,12 @@
               "entitySet": "RFQs",
               "variantManagement": "None",
               "initialLoad": "Enabled",
-              "navigationSettings": {
-                "detail": {
-                  "route": "RFQsObjectPage"
-                }
-              },
               "controlConfiguration": {
                 "@com.sap.vocabularies.UI.v1.LineItem": {
                   "tableSettings": {
                     "type": "ResponsiveTable"
                   }
                 }
-              },
-              "controllerExtensions": {
-                "sap.fe.templates.ListReport.ListReportController": "com.zrfq.rfq.ext.ListReportExt"
               }
             }
           }
