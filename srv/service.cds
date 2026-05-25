@@ -85,8 +85,9 @@ service RFQService {
         // Admin (read-only in C4C)
         createdByName             : String(255) @readonly;  // CreatedBy
         lastChangedByName         : String(255) @readonly;  // LastChangedByName
-        // Computed UI helper (1=overdue/red, 0=neutral)
+        // Computed UI helpers
         virtual criticality       : Integer;
+        virtual detailUrl         : String;
 
         // ── 1:N compositions to child nodes ──────────────────────────────────
         items         : Composition of many RFQItems          on items.parentObjectID         = ObjectID;

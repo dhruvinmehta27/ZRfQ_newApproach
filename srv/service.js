@@ -82,8 +82,8 @@ function toCAP(raw) {
   for (const [c4cKey, capKey] of Object.entries(FROM_C4C)) {
     if (raw[c4cKey] !== undefined) r[capKey] = raw[c4cKey];
   }
-  // Criticality: 1=red (overdue), 0=neutral
   r.criticality = r.rfqOverDue === true ? 1 : 0;
+  r.detailUrl = `#/RFQs(ObjectID='${r.ObjectID}')`;
   return r;
 }
 
@@ -519,14 +519,16 @@ module.exports = class RFQService extends cds.ApplicationService {
 
     // ── Root entity handlers ─────────────────────────────────────────────────
 
+    const addUrl = r => ({ ...r, detailUrl: `#/RFQs(ObjectID='${r.ObjectID}')` });
+
     this.on('READ', RFQs, async (req) => {
       if (IS_MOCK) {
         const id = extractField(req.query.SELECT?.where ?? [], 'ObjectID');
         if (id) {
           const found = mock.RFQS.find(r => r.ObjectID === id);
-          return found ? [found] : [];
+          return found ? [addUrl(found)] : [];
         }
-        const all = mock.RFQS;
+        const all = mock.RFQS.map(addUrl);
         const skip = req.query.SELECT?.limit?.offset?.val != null ? Number(req.query.SELECT.limit.offset.val) : 0;
         const top  = req.query.SELECT?.limit?.rows?.val  != null ? Number(req.query.SELECT.limit.rows.val)  : all.length;
         const page = all.slice(skip, skip + top);
