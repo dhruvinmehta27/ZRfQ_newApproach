@@ -67,32 +67,10 @@ async function listRFQsFirstPage(odataParams = {}) {
   return { results, nextUrl: d?.__next ?? null };
 }
 
-// Fetch all pages starting from nextUrl (the __next from the first page).
-// Runs in the background after listRFQsFirstPage; always keeps $format=json.
-async function listRFQsRemainingPages(nextUrl) {
-  const client = await _client();
-  const all = [];
-  let url = nextUrl;
-  let page = 2;
-  while (url) {
-    console.log(`[c4c] listRFQs page ${page} – fetching…`);
-    const r = await client.get(url, { params: { $format: 'json' } });
-    const d = r.data?.d;
-    const results = d?.results ?? r.data?.value ?? [];
-    all.push(...results);
-    console.log(`[c4c] listRFQs page ${page} – got ${results.length} rows (total so far: ${all.length})`);
-    url = d?.__next ?? null;
-    page++;
-  }
-  return all;
-}
-
-// Convenience: full sequential fetch (used by RFQStatusSummary and write invalidation).
+// Thin wrapper kept for any remaining callers; returns only the first page.
 async function listRFQs(odataParams = {}) {
-  const { results: first, nextUrl } = await listRFQsFirstPage(odataParams);
-  if (!nextUrl) return first;
-  const rest = await listRFQsRemainingPages(nextUrl);
-  return [...first, ...rest];
+  const { results } = await listRFQsFirstPage(odataParams);
+  return results;
 }
 
 async function getRFQ(id) {
@@ -179,7 +157,7 @@ async function deleteChild(c4cCollection, objectID) {
 }
 
 module.exports = {
-  listRFQs, listRFQsFirstPage, listRFQsRemainingPages,
+  listRFQs, listRFQsFirstPage,
   getRFQ, createRFQ, updateRFQ, deleteRFQ,
   listChildren, getChild, createChild, updateChild, deleteChild
 };

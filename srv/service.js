@@ -570,26 +570,41 @@ module.exports = class RFQService extends cds.ApplicationService {
           }
         }
 
-        const orderBy = SELECT?.orderBy?.length ? buildOrderBy(SELECT.orderBy) : '';
-        const cacheKey = orderBy;
-
-        let all = _listCacheGet(cacheKey);
-        if (!all) {
-          // Deduplicate: if another request is already fetching the same key,
-          // await the same promise instead of making a duplicate C4C call.
-          if (!_listFetch.has(cacheKey)) {
-            const params = {};
-            if (orderBy) params.$orderby = orderBy;
-            const p = c4c.listRFQs(params).then(raw => {
-              const result = raw.map(toCAP);
-              result.forEach(_rfqCacheSet);
-              _listCacheSet(cacheKey, result);
-              _listFetch.delete(cacheKey);
-              return result;
-            }).catch(e => { _listFetch.delete(cacheKey); throw e; });
-            _listFetch.set(cacheKey, p);
+        // Always use a single fixed cache key. FE may request different
+        // sort orders (from annotations); satisfy those by sorting locally
+        // from the cached 1000-record slice rather than re-fetching.
+        const LIST_KEY = 'latest';
+        let cached = _listCacheGet(LIST_KEY);
+        if (!cached) {
+          if (!_listFetch.has(LIST_KEY)) {
+            const p = c4c.listRFQsFirstPage({ $orderby: 'CreatedOn_date desc' })
+              .then(({ results }) => {
+                const result = results.map(toCAP);
+                _listCacheSet(LIST_KEY, result);
+                _listFetch.delete(LIST_KEY);
+                console.log(`[RFQService] Cache ready: ${result.length} newest RFQs`);
+                return result;
+              })
+              .catch(e => { _listFetch.delete(LIST_KEY); throw e; });
+            _listFetch.set(LIST_KEY, p);
           }
-          all = await _listFetch.get(cacheKey);
+          cached = await _listFetch.get(LIST_KEY);
+        }
+
+        // Sort locally if FE requested a different order (fast on 1000 records)
+        let all = cached;
+        if (SELECT?.orderBy?.length) {
+          all = [...cached].sort((a, b) => {
+            for (const ord of SELECT.orderBy) {
+              const field = ord.ref?.[0];
+              const dir   = ord.sort === 'desc' ? -1 : 1;
+              const av = a[field] ?? '';
+              const bv = b[field] ?? '';
+              if (av < bv) return -dir;
+              if (av > bv) return dir;
+            }
+            return 0;
+          });
         }
 
         const skip = SELECT?.limit?.offset?.val != null ? Number(SELECT.limit.offset.val) : 0;
@@ -703,7 +718,7 @@ module.exports = class RFQService extends cds.ApplicationService {
     // ── RFQ Status Summary (pipeline reporting, computed in handler) ──────────────────
 
     this.on('READ', RFQStatusSummary, async (req) => {
-      const source = IS_MOCK ? mock.RFQS : (_listCacheGet('') ?? (await c4c.listRFQs({})).map(toCAP));
+      const source = IS_MOCK ? mock.RFQS : (_listCacheGet('latest') ?? []);
       try {
         const groups = {};
         for (const item of source) {
@@ -728,32 +743,22 @@ module.exports = class RFQService extends cds.ApplicationService {
 
     await super.init();
 
-    // Warm cache at startup: fetch page 1 immediately so the first user request
-    // gets data in ~1-2s, then fetch the remaining pages in the background.
+    // Warm cache at startup: fetch the first C4C page (newest 1000 RFQs).
+    // Registered in _listFetch so the first user request awaits the same
+    // promise instead of triggering a second parallel C4C call.
     if (!IS_MOCK) {
-      const warmPromise = c4c.listRFQsFirstPage({ $orderby: 'CreatedOn_date desc' }).then(({ results, nextUrl }) => {
-        const firstMapped = results.map(toCAP);
-        firstMapped.forEach(_rfqCacheSet);
-        _listCacheSet('', firstMapped);
-        _listFetch.delete('');  // release: subsequent requests now hit the cache
-        console.log(`[RFQService] First page ready: ${firstMapped.length} RFQs (more loading in background…)`);
-
-        // Fetch the rest without blocking anything
-        if (nextUrl) {
-          c4c.listRFQsRemainingPages(nextUrl).then(rest => {
-            const all = [...firstMapped, ...rest.map(toCAP)];
-            all.forEach(_rfqCacheSet);
-            _listCacheSet('', all);
-            console.log(`[RFQService] Full cache: ${all.length} RFQs ready`);
-          }).catch(e => console.warn('[RFQService] Background page fetch failed:', e.message));
-        }
-
-        return firstMapped;
-      }).catch(e => {
-        _listFetch.delete('');
-        console.warn('[RFQService] Cache warm failed:', e.message);
-      });
-      _listFetch.set('', warmPromise);
+      const warmPromise = c4c.listRFQsFirstPage({ $orderby: 'CreatedOn_date desc' })
+        .then(({ results }) => {
+          const mapped = results.map(toCAP);
+          _listCacheSet('latest', mapped);
+          _listFetch.delete('latest');
+          console.log(`[RFQService] Cache ready: ${mapped.length} newest RFQs`);
+          return mapped;
+        }).catch(e => {
+          _listFetch.delete('latest');
+          console.warn('[RFQService] Cache warm failed:', e.message);
+        });
+      _listFetch.set('latest', warmPromise);
     }
   }
 };
