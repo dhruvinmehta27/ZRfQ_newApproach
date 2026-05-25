@@ -426,9 +426,12 @@ function mkChildHandlers(srv, entityName, c4cCollection, fieldMap, opts = {}) {
         return [from(obj)];
       }
 
-      // Collection read – may include parentObjectID filter from composition navigation
+      // Collection read – may include parentObjectID filter from composition navigation.
+      // For /RFQs('OID')/items style navigation CAP puts the parent key in req.params,
+      // not in the WHERE clause, so fall back to req.params[0].ObjectID.
       const params = {};
-      const parentOid = extractField(where, 'parentObjectID');
+      const parentOid = extractField(where, 'parentObjectID')
+        || req.params?.[0]?.ObjectID;
       if (parentOid) params.$filter = `ParentObjectID eq '${parentOid}'`;
       if (SELECT?.limit?.rows?.val   != null) params.$top     = SELECT.limit.rows.val;
       if (SELECT?.limit?.offset?.val != null) params.$skip    = SELECT.limit.offset.val;
@@ -616,8 +619,9 @@ module.exports = class RFQService extends cds.ApplicationService {
       const mockChild = (entity, dataset) => {
         this.on('READ', entity, async (req) => {
           const where = req.query.SELECT?.where ?? [];
-          const parentOid = extractField(where, 'parentObjectID');
           const oid       = extractField(where, 'ObjectID');
+          const parentOid = extractField(where, 'parentObjectID')
+            || req.params?.[0]?.ObjectID;
           if (oid)       return dataset.filter(r => r.ObjectID === oid);
           if (parentOid) return dataset.filter(r => r.parentObjectID === parentOid);
           return dataset;
