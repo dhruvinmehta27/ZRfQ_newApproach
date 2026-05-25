@@ -433,11 +433,18 @@ function mkChildHandlers(srv, entityName, c4cCollection, fieldMap, opts = {}) {
       const parentOid = extractField(where, 'parentObjectID')
         || req.params?.[0]?.ObjectID;
       if (parentOid) params.$filter = `ParentObjectID eq '${parentOid}'`;
-      if (SELECT?.limit?.rows?.val   != null) params.$top     = SELECT.limit.rows.val;
-      if (SELECT?.limit?.offset?.val != null) params.$skip    = SELECT.limit.offset.val;
 
-      const results = await c4c.listChildren(c4cCollection, params);
-      return results.map(from);
+      // Do NOT forward $top/$skip to C4C – several child collections return
+      // "not supported by the processor" when pagination params are combined
+      // with $filter (same reason listRFQs strips them). Paginate locally instead.
+      const all = await c4c.listChildren(c4cCollection, params);
+      const mapped = all.map(from);
+
+      const skip = SELECT?.limit?.offset?.val != null ? Number(SELECT.limit.offset.val) : 0;
+      const top  = SELECT?.limit?.rows?.val   != null ? Number(SELECT.limit.rows.val)   : mapped.length;
+      const page = mapped.slice(skip, skip + top);
+      page.$count = mapped.length;
+      return page;
     } catch (e) {
       req.error(e.response?.status ?? 500, e.response?.data?.error?.message?.value ?? e.message);
     }
