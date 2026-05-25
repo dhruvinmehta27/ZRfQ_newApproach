@@ -5,13 +5,13 @@ sap.ui.define([
 ], function (AppComponent, ServiceFactoryRegistry, ServiceFactory) {
   'use strict';
 
-  // Standalone polyfill: FE v4 calls storeInnerAppStateAsync on the ushell
-  // AppState service when navigating between pages. Without a Fiori Launchpad
-  // the service is absent, causing a TypeError that silently blocks navigation.
+  // Standalone polyfill: provide the ushell services FE v4 expects from a
+  // Fiori Launchpad. Without these, view creation and routing both crash.
   (function patchUshell() {
     if (typeof sap === 'undefined') { return; }
     sap.ushell = sap.ushell || {};
     if (sap.ushell.Container) { return; } // real shell already present
+
     var oState = {
       storeInnerAppStateAsync : function () { return Promise.resolve({ appStateKey: '' }); },
       setData                  : function () {},
@@ -22,28 +22,57 @@ sap.ui.define([
       createEmptyAppState : function () { return oState; },
       getAppState         : function () { return Promise.resolve(oState); }
     };
+
+    // FE RouterProxy calls splitHash to parse the URL hash for app-name resolution.
+    var oUrlParsingSvc = {
+      splitHash        : function () { return { semanticObject: '', action: '', params: {}, appSpecificRoute: '', contextRaw: '' }; },
+      parseShellHash   : function () { return { semanticObject: '', action: '', params: {} }; },
+      combineParameters: function () { return ''; },
+      constructShellHash: function () { return ''; },
+      isIntentUrl      : function () { return false; }
+    };
+
+    // FE ShellServicesFactory calls getUser().getContentDensity() when creating views.
+    var oUser = {
+      getFullName       : function () { return ''; },
+      getFirstName      : function () { return ''; },
+      getLastName       : function () { return ''; },
+      getId             : function () { return ''; },
+      getEmail          : function () { return ''; },
+      getLanguage       : function () { return 'EN'; },
+      getContentDensity : function () { return 'cozy'; },
+      isJamActive       : function () { return false; }
+    };
+
+    function _getSvc(sName) {
+      if (sName === 'AppState')   { return oAppStateSvc; }
+      if (sName === 'URLParsing') { return oUrlParsingSvc; }
+      return {};
+    }
+
     sap.ushell.Container = {
-      getServiceAsync : function () { return Promise.resolve(oAppStateSvc); },
-      getService      : function () { return oAppStateSvc; }
+      getServiceAsync : function (sName) { return Promise.resolve(_getSvc(sName)); },
+      getService      : function (sName) { return _getSvc(sName); },
+      getUser         : function ()      { return oUser; }
     };
   })();
 
-  // Standalone polyfill: FE v4 looks up ShellUIService in UI5's
-  // ServiceFactoryRegistry at component load time. Without an FLP the factory
-  // is absent, causing a [FUTURE FATAL] that prevents the component from loading.
+  // Standalone polyfill: register a no-op ShellUIService factory in UI5's
+  // ServiceFactoryRegistry. FE looks this up at component load time; without
+  // an FLP the factory is absent, causing a [FUTURE FATAL] blank page.
   (function registerShellUIService() {
     var sName = 'sap.ushell.ui5service.ShellUIService';
-    if (ServiceFactoryRegistry.get(sName)) { return; } // real shell registered it already
+    if (ServiceFactoryRegistry.get(sName)) { return; }
     var NoopFactory = ServiceFactory.extend('com.zrfq.rfq.NoopShellUIServiceFactory', {
       createInstance : function () {
         var oSvc = {
-          setTitle       : function () {},
-          setHierarchy   : function () {},
-          setRelatedApps : function () {},
-          getTitle       : function () { return ''; },
+          setTitle             : function () {},
+          setHierarchy         : function () {},
+          setRelatedApps       : function () {},
+          getTitle             : function () { return ''; },
           attachTitleChanged   : function () {},
           detachTitleChanged   : function () {},
-          destroy        : function () {}
+          destroy              : function () {}
         };
         oSvc.getInterface = function () { return oSvc; };
         return Promise.resolve(oSvc);
