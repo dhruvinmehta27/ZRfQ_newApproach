@@ -429,15 +429,16 @@ function mkChildHandlers(srv, entityName, c4cCollection, fieldMap, opts = {}) {
       // Collection read – may include parentObjectID filter from composition navigation.
       // For /RFQs('OID')/items style navigation CAP puts the parent key in req.params,
       // not in the WHERE clause, so fall back to req.params[0].ObjectID.
-      const params = {};
       const parentOid = extractField(where, 'parentObjectID')
         || req.params?.[0]?.ObjectID;
-      if (parentOid) params.$filter = `ParentObjectID eq '${parentOid}'`;
 
-      // Do NOT forward $top/$skip to C4C – several child collections return
-      // "not supported by the processor" when pagination params are combined
-      // with $filter (same reason listRFQs strips them). Paginate locally instead.
-      const all = await c4c.listChildren(c4cCollection, params);
+      // Guard: never call C4C without a parent filter – some collections refuse
+      // unfiltered reads with 400 "not supported by the processor".
+      if (!parentOid) return [];
+
+      const all = await c4c.listChildren(c4cCollection, {
+        $filter: `ParentObjectID eq '${parentOid}'`
+      });
       const mapped = all.map(from);
 
       const skip = SELECT?.limit?.offset?.val != null ? Number(SELECT.limit.offset.val) : 0;
@@ -446,7 +447,15 @@ function mkChildHandlers(srv, entityName, c4cCollection, fieldMap, opts = {}) {
       page.$count = mapped.length;
       return page;
     } catch (e) {
-      req.error(e.response?.status ?? 500, e.response?.data?.error?.message?.value ?? e.message);
+      const status = e.response?.status ?? 500;
+      const msg    = e.response?.data?.error?.message?.value ?? e.message;
+      // Some C4C collections don't support $filter on ParentObjectID.
+      // Return empty rather than crashing the whole Object Page for one tab.
+      if (status === 400) {
+        console.warn(`[${c4cCollection}] C4C 400 – returning empty: ${msg}`);
+        return [];
+      }
+      req.error(status, msg);
     }
   });
 
