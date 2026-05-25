@@ -668,7 +668,26 @@ module.exports = class RFQService extends cds.ApplicationService {
     mkChildHandlers(this, RFQRelatedTxns,   'RFQListofRelatedTransactionsCollection',    RELATED_TXNS);
     mkChildHandlers(this, RFQAttachmentList,'RFQListofAttachmentsCollection',            ATT_LIST);
     mkChildHandlers(this, RFQStatusHistory, 'RFQStatusChangesTrackingCollection',        STATUS_HIST);
-    mkChildHandlers(this, RFQAttachments,   'RFQAttachmentsCollection',                  ATTACHMENTS, { noUpdate: true });
+    // RFQAttachmentsCollection does not support GET with $filter – attachments
+    // are readable via RFQAttachmentList above. Only wire up CREATE/DELETE here.
+    this.on('READ',   RFQAttachments, () => []);
+    this.on('CREATE', RFQAttachments, async (req) => {
+      try {
+        const payload = ATTACHMENTS.to(req.data);
+        delete payload.ObjectID;
+        const created = await c4c.createChild('RFQAttachmentsCollection', payload);
+        return ATTACHMENTS.from(created);
+      } catch (e) {
+        req.error(e.response?.status ?? 500, e.response?.data?.error?.message?.value ?? e.message);
+      }
+    });
+    this.on('DELETE', RFQAttachments, async (req) => {
+      try {
+        await c4c.deleteChild('RFQAttachmentsCollection', lastOid(req));
+      } catch (e) {
+        req.error(e.response?.status ?? 500, e.response?.data?.error?.message?.value ?? e.message);
+      }
+    });
     }
 
     // ── RFQ Status Summary (pipeline reporting, computed in handler) ──────────────────
