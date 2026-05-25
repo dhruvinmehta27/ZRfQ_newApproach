@@ -6,7 +6,7 @@
     "type": "application",
     "title": "{{appTitle}}",
     "description": "{{appDescription}}",
-    "applicationVersion": { "version": "1.0.5" },
+    "applicationVersion": { "version": "1.0.6" },
     "dataSources": {
       "mainService": {
         "uri": "/rfq/",
