@@ -580,6 +580,7 @@ module.exports = class RFQService extends cds.ApplicationService {
             const p = c4c.listRFQsFirstPage({ $orderby: 'CreatedOn_date desc' })
               .then(({ results }) => {
                 const result = results.map(toCAP);
+                result.forEach(_rfqCacheSet);
                 _listCacheSet(LIST_KEY, result);
                 _listFetch.delete(LIST_KEY);
                 console.log(`[RFQService] Cache ready: ${result.length} newest RFQs`);
@@ -750,6 +751,9 @@ module.exports = class RFQService extends cds.ApplicationService {
       const warmPromise = c4c.listRFQsFirstPage({ $orderby: 'CreatedOn_date desc' })
         .then(({ results }) => {
           const mapped = results.map(toCAP);
+          // Also populate individual ObjectID cache so Object Page clicks
+          // hit the cache instead of calling getRFQ (which C4C 500s on key reads).
+          mapped.forEach(_rfqCacheSet);
           _listCacheSet('latest', mapped);
           _listFetch.delete('latest');
           console.log(`[RFQService] Cache ready: ${mapped.length} newest RFQs`);
