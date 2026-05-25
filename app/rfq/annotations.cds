@@ -1,7 +1,9 @@
 using RFQService from '../../srv/service';
 
-// Makes rfqID render as a navigation link in the List Report table
 annotate RFQService.RFQs with @Common.SemanticKey: [rfqID];
+
+// Hide Delete from List Report toolbar — removes checkboxes so row clicks navigate
+annotate RFQService.RFQs with @Capabilities.DeleteRestrictions: { Deletable: false };
 
 // ── LIST REPORT ───────────────────────────────────────────────────────────────
 
