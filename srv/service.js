@@ -728,16 +728,27 @@ module.exports = class RFQService extends cds.ApplicationService {
 
     await super.init();
 
-    // Pre-populate _listFetch at startup so the first user request shares
-    // this promise instead of triggering a second parallel C4C page-chain fetch.
+    // Warm cache at startup: fetch page 1 immediately so the first user request
+    // gets data in ~1-2s, then fetch the remaining pages in the background.
     if (!IS_MOCK) {
-      const warmPromise = c4c.listRFQs({}).then(raw => {
-        const all = raw.map(toCAP);
-        all.forEach(_rfqCacheSet);
-        _listCacheSet('', all);
-        _listFetch.delete('');
-        console.log(`[RFQService] Cache warmed: ${all.length} RFQs ready`);
-        return all;
+      const warmPromise = c4c.listRFQsFirstPage({ $orderby: 'CreatedOn_date desc' }).then(({ results, nextUrl }) => {
+        const firstMapped = results.map(toCAP);
+        firstMapped.forEach(_rfqCacheSet);
+        _listCacheSet('', firstMapped);
+        _listFetch.delete('');  // release: subsequent requests now hit the cache
+        console.log(`[RFQService] First page ready: ${firstMapped.length} RFQs (more loading in background…)`);
+
+        // Fetch the rest without blocking anything
+        if (nextUrl) {
+          c4c.listRFQsRemainingPages(nextUrl).then(rest => {
+            const all = [...firstMapped, ...rest.map(toCAP)];
+            all.forEach(_rfqCacheSet);
+            _listCacheSet('', all);
+            console.log(`[RFQService] Full cache: ${all.length} RFQs ready`);
+          }).catch(e => console.warn('[RFQService] Background page fetch failed:', e.message));
+        }
+
+        return firstMapped;
       }).catch(e => {
         _listFetch.delete('');
         console.warn('[RFQService] Cache warm failed:', e.message);

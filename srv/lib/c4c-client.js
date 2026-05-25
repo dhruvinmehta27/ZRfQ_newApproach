@@ -54,35 +54,45 @@ async function _csrf_token() {
 
 // ── Root entity CRUD ──────────────────────────────────────────────────────────
 
-async function listRFQs(odataParams = {}) {
+// Fetch only the first C4C page (~1000 rows). Returns { results, nextUrl }.
+// Used by the startup warm so users see data immediately while the rest loads.
+async function listRFQsFirstPage(odataParams = {}) {
   const client = await _client();
-  // $top / $skip are intentionally omitted from the C4C request: the custom BO
-  // returns HTTP 500 when the offset exceeds the result-set size on paginated reads.
-  // service.js fetches the full collection once and paginates locally.
   const { $top, $skip, ...c4cParams } = odataParams;
+  console.log('[c4c] listRFQs page 1 – fetching…');
+  const r = await client.get(ROOT_COLL, { params: { $format: 'json', ...c4cParams } });
+  const d = r.data?.d;
+  const results = d?.results ?? r.data?.value ?? [];
+  console.log(`[c4c] listRFQs page 1 – got ${results.length} rows`);
+  return { results, nextUrl: d?.__next ?? null };
+}
 
-  // C4C caps each response at 1000 rows and signals more pages via d.__next.
-  // Follow the skiptoken chain until exhausted so we return the full dataset.
+// Fetch all pages starting from nextUrl (the __next from the first page).
+// Runs in the background after listRFQsFirstPage; always keeps $format=json.
+async function listRFQsRemainingPages(nextUrl) {
+  const client = await _client();
   const all = [];
-  let url = ROOT_COLL;
-  let params = { $format: 'json', ...c4cParams };
-  let page = 1;
-
+  let url = nextUrl;
+  let page = 2;
   while (url) {
     console.log(`[c4c] listRFQs page ${page} – fetching…`);
-    const r = await client.get(url, { params });
+    const r = await client.get(url, { params: { $format: 'json' } });
     const d = r.data?.d;
     const results = d?.results ?? r.data?.value ?? [];
     all.push(...results);
     console.log(`[c4c] listRFQs page ${page} – got ${results.length} rows (total so far: ${all.length})`);
-    // __next is an absolute URL; always keep $format=json so C4C doesn't
-    // revert to XML on subsequent pages.
     url = d?.__next ?? null;
-    params = { $format: 'json' };
     page++;
   }
-
   return all;
+}
+
+// Convenience: full sequential fetch (used by RFQStatusSummary and write invalidation).
+async function listRFQs(odataParams = {}) {
+  const { results: first, nextUrl } = await listRFQsFirstPage(odataParams);
+  if (!nextUrl) return first;
+  const rest = await listRFQsRemainingPages(nextUrl);
+  return [...first, ...rest];
 }
 
 async function getRFQ(id) {
@@ -169,6 +179,7 @@ async function deleteChild(c4cCollection, objectID) {
 }
 
 module.exports = {
-  listRFQs, getRFQ, createRFQ, updateRFQ, deleteRFQ,
+  listRFQs, listRFQsFirstPage, listRFQsRemainingPages,
+  getRFQ, createRFQ, updateRFQ, deleteRFQ,
   listChildren, getChild, createChild, updateChild, deleteChild
 };
