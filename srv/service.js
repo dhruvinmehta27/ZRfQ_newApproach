@@ -577,7 +577,7 @@ module.exports = class RFQService extends cds.ApplicationService {
         let cached = _listCacheGet(LIST_KEY);
         if (!cached) {
           if (!_listFetch.has(LIST_KEY)) {
-            const p = c4c.listRFQsFirstPage({ $orderby: 'CreatedOn_date desc' })
+            const p = c4c.listRFQsFirstPage({ $orderby: 'ID desc' })
               .then(({ results }) => {
                 const result = results.map(toCAP);
                 result.forEach(_rfqCacheSet);
@@ -748,7 +748,7 @@ module.exports = class RFQService extends cds.ApplicationService {
     // Registered in _listFetch so the first user request awaits the same
     // promise instead of triggering a second parallel C4C call.
     if (!IS_MOCK) {
-      const warmPromise = c4c.listRFQsFirstPage({ $orderby: 'CreatedOn_date desc' })
+      const warmPromise = c4c.listRFQsFirstPage({ $orderby: 'ID desc' })
         .then(({ results }) => {
           const mapped = results.map(toCAP);
           // Also populate individual ObjectID cache so Object Page clicks
