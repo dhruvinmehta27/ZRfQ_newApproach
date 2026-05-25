@@ -19,17 +19,28 @@ sap.ui.define([
       save                     : function () { return Promise.resolve(); }
     };
     var oAppStateSvc = {
-      createEmptyAppState : function () { return oState; },
-      getAppState         : function () { return Promise.resolve(oState); }
+      createEmptyAppState      : function () { return oState; },
+      createEmptyAppStateAsync : function () { return Promise.resolve(oState); },
+      getAppState              : function () { return Promise.resolve(oState); }
     };
 
-    // FE RouterProxy calls splitHash to parse the URL hash for app-name resolution.
+    // FE RouterProxy calls splitHash / getShellHash to parse the URL hash.
     var oUrlParsingSvc = {
-      splitHash        : function () { return { semanticObject: '', action: '', params: {}, appSpecificRoute: '', contextRaw: '' }; },
-      parseShellHash   : function () { return { semanticObject: '', action: '', params: {} }; },
-      combineParameters: function () { return ''; },
+      splitHash         : function () { return { semanticObject: '', action: '', params: {}, appSpecificRoute: '', contextRaw: '' }; },
+      parseShellHash    : function () { return { semanticObject: '', action: '', params: {} }; },
+      getShellHash      : function () { return ''; },
+      combineParameters : function () { return ''; },
       constructShellHash: function () { return ''; },
-      isIntentUrl      : function () { return false; }
+      isIntentUrl       : function () { return false; }
+    };
+
+    // FE RouterProxy calls registerNavigationFilter on ShellNavigation at init.
+    var oShellNavSvc = {
+      registerNavigationFilter  : function () {},
+      unregisterNavigationFilter: function () {},
+      navigate                  : function () {},
+      isInitialNavigation       : function () { return false; },
+      parseShellHash            : function () { return { semanticObject: '', action: '' }; }
     };
 
     // FE ShellServicesFactory calls getUser().getContentDensity() when creating views.
@@ -45,8 +56,9 @@ sap.ui.define([
     };
 
     function _getSvc(sName) {
-      if (sName === 'AppState')   { return oAppStateSvc; }
-      if (sName === 'URLParsing') { return oUrlParsingSvc; }
+      if (sName === 'AppState')        { return oAppStateSvc; }
+      if (sName === 'URLParsing')      { return oUrlParsingSvc; }
+      if (sName === 'ShellNavigation') { return oShellNavSvc; }
       return {};
     }
 
