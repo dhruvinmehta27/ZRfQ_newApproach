@@ -83,7 +83,7 @@ function toCAP(raw) {
     if (raw[c4cKey] !== undefined) r[capKey] = raw[c4cKey];
   }
   r.criticality = r.rfqOverDue === true ? 1 : 0;
-  r.detailUrl = `#/RFQs(ObjectID='${r.ObjectID}')`;
+  r.detailUrl = `#RFQs(ObjectID='${r.ObjectID}')`;
   return r;
 }
 
@@ -519,7 +519,7 @@ module.exports = class RFQService extends cds.ApplicationService {
 
     // ── Root entity handlers ─────────────────────────────────────────────────
 
-    const addUrl = r => ({ ...r, detailUrl: `#/RFQs(ObjectID='${r.ObjectID}')` });
+    const addUrl = r => ({ ...r, detailUrl: `#RFQs(ObjectID='${r.ObjectID}')` });
 
     this.on('READ', RFQs, async (req) => {
       if (IS_MOCK) {
