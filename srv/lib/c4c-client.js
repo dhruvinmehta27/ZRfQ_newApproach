@@ -66,16 +66,20 @@ async function listRFQs(odataParams = {}) {
   const all = [];
   let url = ROOT_COLL;
   let params = { $format: 'json', ...c4cParams };
+  let page = 1;
 
   while (url) {
+    console.log(`[c4c] listRFQs page ${page} – fetching…`);
     const r = await client.get(url, { params });
     const d = r.data?.d;
-    const page = d?.results ?? r.data?.value ?? [];
-    all.push(...page);
-    // __next is an absolute URL; on subsequent calls drop the initial params
-    // because the skiptoken already encodes them.
+    const results = d?.results ?? r.data?.value ?? [];
+    all.push(...results);
+    console.log(`[c4c] listRFQs page ${page} – got ${results.length} rows (total so far: ${all.length})`);
+    // __next is an absolute URL; always keep $format=json so C4C doesn't
+    // revert to XML on subsequent pages.
     url = d?.__next ?? null;
-    params = {};
+    params = { $format: 'json' };
+    page++;
   }
 
   return all;

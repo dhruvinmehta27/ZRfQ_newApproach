@@ -728,17 +728,21 @@ module.exports = class RFQService extends cds.ApplicationService {
 
     await super.init();
 
-    // Warm the list cache in the background at startup so the first user
-    // request hits the cache rather than waiting for a full C4C page-chain fetch.
+    // Pre-populate _listFetch at startup so the first user request shares
+    // this promise instead of triggering a second parallel C4C page-chain fetch.
     if (!IS_MOCK) {
-      setImmediate(() => {
-        c4c.listRFQs({}).then(raw => {
-          const all = raw.map(toCAP);
-          all.forEach(_rfqCacheSet);
-          _listCacheSet('', all);
-          console.log(`[RFQService] Cache warmed: ${all.length} RFQs ready`);
-        }).catch(e => console.warn('[RFQService] Cache warm failed:', e.message));
+      const warmPromise = c4c.listRFQs({}).then(raw => {
+        const all = raw.map(toCAP);
+        all.forEach(_rfqCacheSet);
+        _listCacheSet('', all);
+        _listFetch.delete('');
+        console.log(`[RFQService] Cache warmed: ${all.length} RFQs ready`);
+        return all;
+      }).catch(e => {
+        _listFetch.delete('');
+        console.warn('[RFQService] Cache warm failed:', e.message);
       });
+      _listFetch.set('', warmPromise);
     }
   }
 };
