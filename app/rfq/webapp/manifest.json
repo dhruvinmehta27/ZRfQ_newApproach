@@ -48,16 +48,6 @@
       "cozy": true
     },
 
-    "extends": {
-      "extensions": {
-        "sap.ui.controllerExtensions": {
-          "sap.fe.templates.ListReport.ListReportController": {
-            "controllerName": "com.zrfq.rfq.ext.ListReportExt"
-          }
-        }
-      }
-    },
-
     "models": {
       "": {
         "dataSource": "mainService",
