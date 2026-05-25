@@ -6,7 +6,7 @@
     "type": "application",
     "title": "{{appTitle}}",
     "description": "{{appDescription}}",
-    "applicationVersion": { "version": "1.0.7" },
+    "applicationVersion": { "version": "1.0.8" },
     "dataSources": {
       "mainService": {
         "uri": "/rfq/",
@@ -108,6 +108,9 @@
                     "type": "ResponsiveTable"
                   }
                 }
+              },
+              "controllerExtensions": {
+                "sap.fe.templates.ListReport.ListReportController": "com.zrfq.rfq.ext.ListReportExt"
               }
             }
           }
