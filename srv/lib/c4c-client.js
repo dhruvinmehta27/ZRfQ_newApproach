@@ -60,11 +60,25 @@ async function listRFQs(odataParams = {}) {
   // returns HTTP 500 when the offset exceeds the result-set size on paginated reads.
   // service.js fetches the full collection once and paginates locally.
   const { $top, $skip, ...c4cParams } = odataParams;
-  const r = await client.get(ROOT_COLL, {
-    params: { $format: 'json', ...c4cParams }
-  });
-  const d = r.data?.d;
-  return d?.results ?? r.data?.value ?? [];
+
+  // C4C caps each response at 1000 rows and signals more pages via d.__next.
+  // Follow the skiptoken chain until exhausted so we return the full dataset.
+  const all = [];
+  let url = ROOT_COLL;
+  let params = { $format: 'json', ...c4cParams };
+
+  while (url) {
+    const r = await client.get(url, { params });
+    const d = r.data?.d;
+    const page = d?.results ?? r.data?.value ?? [];
+    all.push(...page);
+    // __next is an absolute URL; on subsequent calls drop the initial params
+    // because the skiptoken already encodes them.
+    url = d?.__next ?? null;
+    params = {};
+  }
+
+  return all;
 }
 
 async function getRFQ(id) {
