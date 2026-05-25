@@ -185,16 +185,13 @@ annotate RFQService.RFQs with @(
       ]
     },
 
-    // Tab 5 – Attachments
-    {
-      $Type : 'UI.CollectionFacet',
-      ID    : 'tabAttachments',
-      Label : '{i18n>tabAttachments}',
-      Facets: [
-        { $Type: 'UI.ReferenceFacet', ID: 'secAttachmentList', Label: '{i18n>secAttachmentList}', Target: 'attachmentList/@UI.LineItem' },
-        { $Type: 'UI.ReferenceFacet', ID: 'secAttachments',    Label: '{i18n>secAttachments}',    Target: 'attachments/@UI.LineItem' }
-      ]
-    },
+    // Tab 5 – Attachments (hidden until C4C attachment API is wired up)
+    // { $Type: 'UI.CollectionFacet', ID: 'tabAttachments', Label: '{i18n>tabAttachments}',
+    //   Facets: [
+    //     { $Type: 'UI.ReferenceFacet', ID: 'secAttachmentList', Label: '{i18n>secAttachmentList}', Target: 'attachmentList/@UI.LineItem' },
+    //     { $Type: 'UI.ReferenceFacet', ID: 'secAttachments',    Label: '{i18n>secAttachments}',    Target: 'attachments/@UI.LineItem' }
+    //   ]
+    // },
 
     // Tab 6 – eQuote
     {
