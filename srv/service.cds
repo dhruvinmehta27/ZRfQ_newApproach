@@ -87,7 +87,6 @@ service RFQService {
         lastChangedByName         : String(255) @readonly;  // LastChangedByName
         // Computed UI helpers
         virtual criticality       : Integer;
-        virtual detailUrl         : String;
 
         // ── 1:N compositions to child nodes ──────────────────────────────────
         items         : Composition of many RFQItems          on items.parentObjectID         = ObjectID;

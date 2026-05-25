@@ -15,7 +15,7 @@ annotate RFQService.RFQs with @(
   ],
 
   UI.LineItem: [
-    { $Type: 'UI.DataFieldWithUrl', Value: rfqID, Url: detailUrl, Label: '{i18n>rfqID}' },
+    { $Type: 'UI.DataField', Value: rfqID, Label: '{i18n>rfqID}' },
     { $Type: 'UI.DataField', Value: name,             Label: '{i18n>name}' },
     { $Type: 'UI.DataField', Value: accountName,      Label: '{i18n>account}' },
     { $Type: 'UI.DataField', Value: supplierName,     Label: '{i18n>supplier}' },
