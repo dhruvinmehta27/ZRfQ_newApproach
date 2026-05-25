@@ -60,6 +60,7 @@ sap.ui.define([
   // Standalone polyfill: register a no-op ShellUIService factory in UI5's
   // ServiceFactoryRegistry. FE looks this up at component load time; without
   // an FLP the factory is absent, causing a [FUTURE FATAL] blank page.
+  // setBackNavigation is called by RouterProxy on every row press before navigating.
   (function registerShellUIService() {
     var sName = 'sap.ushell.ui5service.ShellUIService';
     if (ServiceFactoryRegistry.get(sName)) { return; }
@@ -69,6 +70,7 @@ sap.ui.define([
           setTitle             : function () {},
           setHierarchy         : function () {},
           setRelatedApps       : function () {},
+          setBackNavigation    : function () {},
           getTitle             : function () { return ''; },
           attachTitleChanged   : function () {},
           detachTitleChanged   : function () {},
