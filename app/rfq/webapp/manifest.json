@@ -6,7 +6,7 @@
     "type": "application",
     "title": "{{appTitle}}",
     "description": "{{appDescription}}",
-    "applicationVersion": { "version": "1.0.2" },
+    "applicationVersion": { "version": "1.0.3" },
     "dataSources": {
       "mainService": {
         "uri": "/rfq/",
@@ -105,7 +105,7 @@
               "controlConfiguration": {
                 "@com.sap.vocabularies.UI.v1.LineItem": {
                   "tableSettings": {
-                    "selectionMode": "None"
+                    "type": "ResponsiveTable"
                   }
                 }
               }
